@@ -53,7 +53,7 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <AlertTriangle className="size-6 text-destructive" strokeWidth={1.5} />
             <p className="text-sm font-semibold text-destructive">Couldn't confirm the stream</p>
-            <p className="text-xs text-white/50">{error}</p>
+            <p className="text-justify font-mono text-xs text-white/50">{error}</p>
           </div>
         ) : !stats ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
@@ -61,7 +61,7 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
             <p className="text-sm font-semibold text-white/85">
               {phase === 'waiting-online' ? 'Waiting for the camera to be online…' : 'Opening the stream…'}
             </p>
-            <p className="text-xs text-white/50">
+            <p className="text-justify font-mono text-xs text-white/50">
               Checking <code className="font-mono">/admin/device/{serial}</code> fresh, same as the
               reference Android app does right before it opens a stream.
             </p>
@@ -77,32 +77,32 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
         )}
       </div>
 
-      <p className="shrink-0 font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-justify font-mono text-xs text-muted-foreground">
         No video preview: this camera streams H.265, which browsers can't decode. This confirms
         the full path — browser → backend → the camera's live session — is actually working.
       </p>
 
-      <div className="flex shrink-0 gap-2">
-        <Button
-          variant="outline"
-          className={cn('flex-1', !isLive && 'invisible')}
-          aria-hidden={!isLive}
-          tabIndex={isLive ? undefined : -1}
-          onClick={stop}
-        >
-          <Square />
-          Stop
-        </Button>
-        <Button
-          variant="outline"
-          className={cn('flex-1', phase !== 'stopped' && phase !== 'error' && 'invisible')}
-          aria-hidden={phase !== 'stopped' && phase !== 'error'}
-          tabIndex={phase === 'stopped' || phase === 'error' ? undefined : -1}
-          onClick={restart}
-        >
-          {phase === 'error' ? <RotateCcw /> : <Play />}
-          {phase === 'error' ? 'Retry' : 'Start'}
-        </Button>
+      {/* One button, not two side by side with one always invisible — it
+          just changes what it does depending on phase. Only Stop and
+          Start/Retry are ever mutually applicable, so there's never a case
+          where two actions are needed at once. */}
+      <div className="shrink-0">
+        {isLive ? (
+          <Button variant="outline" className="w-full" onClick={stop}>
+            <Square />
+            Stop
+          </Button>
+        ) : phase === 'stopped' || phase === 'error' ? (
+          <Button variant="outline" className="w-full" onClick={restart}>
+            {phase === 'error' ? <RotateCcw /> : <Play />}
+            {phase === 'error' ? 'Retry' : 'Start'}
+          </Button>
+        ) : (
+          <Button variant="outline" className="invisible w-full" tabIndex={-1} aria-hidden>
+            <Play />
+            Start
+          </Button>
+        )}
       </div>
     </div>
   )

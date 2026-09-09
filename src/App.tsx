@@ -40,7 +40,7 @@ export default function App() {
               <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                 Perodua smart charger
               </span>
-              <h1 className="text-3xl leading-[0.92] font-black tracking-tight uppercase">
+              <h1 className="text-xl leading-[0.95] font-black tracking-tight uppercase">
                 CCTV Pairing
               </h1>
             </div>

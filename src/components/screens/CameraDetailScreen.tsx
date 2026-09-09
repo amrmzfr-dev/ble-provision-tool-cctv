@@ -118,7 +118,7 @@ export function CameraDetailScreen({ serial, onBack, onRemoved }: CameraDetailSc
       <div className="flex flex-col gap-2" style={{ flex: '3 1 0%' }}>
         <span className="text-xs font-semibold uppercase text-muted-foreground">Reset</span>
         <div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-border bg-card p-3">
-          <p className="font-mono text-xs text-muted-foreground">
+          <p className="text-justify font-mono text-xs text-muted-foreground">
             Wipes the camera's WiFi/login config and puts it back into Bluetooth pairing mode.{' '}
             <strong className="text-foreground">Only works while actively connected</strong> — it
             routes through the backend's live session, not a fresh connection made on demand. If

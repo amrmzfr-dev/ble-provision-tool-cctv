@@ -90,7 +90,7 @@ export function PairingScreen({ device, serial, ssid, password, onSuccess, onBac
           Step 4 of 5
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Pairing</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-justify text-sm text-muted-foreground">
           Keep this tab open and the camera nearby — this only takes a few seconds.
         </p>
       </div>
