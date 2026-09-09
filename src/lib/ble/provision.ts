@@ -49,6 +49,22 @@ export async function runProvisioning(
   ssid: string,
   password: string,
   onStage: (stage: ProvisionStage) => void,
+  /**
+   * Fired right after the camera acks the WiFi credentials (05 81), before
+   * waiting for the join result — deliberately NOT after join success.
+   * Calling the backend's wifi-configured notification this early, rather
+   * than after confirming the join over BLE, sidesteps a real backend race:
+   * that endpoint writes ip=None/port=None for this device on every call,
+   * and the write only corrupts anything if the camera has *already*
+   * connected with real values by the time it lands. Notifying immediately
+   * (matching what the original app almost certainly does) keeps the
+   * harmless ordering — null-write first, camera's real registration
+   * overwrites it after — instead of reversing it. See README.md's
+   * "wifi-configured timing" section for the full incident writeup. Errors
+   * here are logged, never thrown — a failed notification must not abort an
+   * otherwise-successful BLE handshake.
+   */
+  onWifiSent: () => void,
 ): Promise<ProvisionResult> {
   const transport = new BleTransport(device)
 
@@ -86,6 +102,12 @@ export async function runProvisioning(
     stage(onStage, 'sending-wifi')
     logEvent('info', `SSID "${ssid}", password length ${password.length}`)
     await sendEncrypted('SET_WIFI', CMD.SET_WIFI, buildWifiPayload(ssid, password))
+
+    try {
+      onWifiSent()
+    } catch (err) {
+      logEvent('error', `onWifiSent callback threw: ${err instanceof Error ? err.message : String(err)}`)
+    }
 
     stage(onStage, 'waiting-for-join')
     const joinFrame = await transport.waitForNotification(30_000)

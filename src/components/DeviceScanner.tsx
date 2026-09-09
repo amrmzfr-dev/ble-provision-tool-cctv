@@ -36,6 +36,7 @@ export function DeviceScanner() {
   const [wifiSsid, setWifiSsid] = useState('')
   const [wifiPassword, setWifiPassword] = useState('')
   const [wifiError, setWifiError] = useState<string | null>(null)
+  const [backendNotified, setBackendNotified] = useState(false)
   const { device, error, scanning, scan, reset } = useBleScan()
 
   // Found -> straight to WiFi entry, no separate confirmation screen. The
@@ -103,10 +104,12 @@ export function DeviceScanner() {
         {step === 'pairing' && device && (
           <PairingScreen
             device={device.device}
+            serial={serial}
             ssid={wifiSsid}
             password={wifiPassword}
             onBack={() => setStep('wifi')}
-            onSuccess={(result) => {
+            onSuccess={(result, notified) => {
+              setBackendNotified(notified)
               if (result.joinResultCode === 0) {
                 setStep('backend')
               } else {
@@ -120,12 +123,14 @@ export function DeviceScanner() {
         {step === 'backend' && (
           <BackendHandoffScreen
             serial={serial}
+            alreadyNotified={backendNotified}
             onDone={() => {
               reset()
               setSerial('')
               setWifiSsid('')
               setWifiPassword('')
               setWifiError(null)
+              setBackendNotified(false)
               setStep('scan')
             }}
             onRetryWifi={() => setStep('wifi')}

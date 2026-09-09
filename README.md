@@ -29,11 +29,9 @@ typing the serial in) as step 1, before it will search for the device over Bluet
       the decompiled SDK — it'll self-correct once tested, but watch this first.
 - [x] Phase 4 — send WiFi credentials, read join result (`PairingScreen.tsx` runs the whole
       handshake live with per-step progress)
-- [x] Phase 5 — call the backend provisioning API, poll status (`BackendHandoffScreen.tsx`).
-      **Judgment call, not confirmed by docs:** `wifi-configured` is called only after the camera's
-      own BLE join-result (`05 02`) comes back success — not right after the credentials are sent —
-      since there's no point starting the server's 5-minute window for a WiFi attempt that's
-      already known to have failed.
+- [x] Phase 5 — call the backend provisioning API, poll status (`BackendHandoffScreen.tsx`,
+      `PairingScreen.tsx`). See "wifi-configured timing" below — this used to be called after the
+      BLE join result, which turned out to trigger a real backend bug.
 - [ ] Phase 6 (not in the original plan, added per a later ask) — bind a user to the device
       (`register_credentials`) and actually play the live stream (needs a FLV-capable player like
       mpegts.js — browsers can't play raw FLV natively)
@@ -46,8 +44,41 @@ application-level acks (`00 8C`, `01 8E`, ...), so it never needed the ATT layer
 small pacing delay between fragments since write-without-response doesn't wait for the peripheral
 to actually receive each one before resolving, unlike write-with-response.
 
-Everything past that point (SN/SC parsing, the `wifi-configured` timing call) is still unconfirmed
-against real hardware — this was only the very first BLE write in the sequence.
+**Second real-hardware result:** the full handshake ran clean end to end — key exchange, serial
+(`BL08809RAGF5610`), security code, WiFi credentials, join result 0 (success). But the camera never
+showed as `connected` on the backend, and streaming failed outright.
+
+### wifi-configured timing — a real backend bug, triggered by this app's own design
+
+Root cause, traced directly in `api_server_listen_mode.py`: `record_wifi_provisioning` (what
+`wifi-configured` calls) does `register_device(serial, ip=None, port=None, ...)` unconditionally,
+every time. That function's SQL upsert is `ON DUPLICATE KEY UPDATE ip = VALUES(ip)` — no
+`COALESCE`, unlike `model`/`firmware_version` two lines below it in the same query, which correctly
+use `COALESCE(VALUES(x), x)`. So any call nulls out the camera's IP/port in the database — but it's
+only *destructive* if the camera already connected with real values by the time the call lands.
+
+This app was calling `wifi-configured` only after the BLE join result (`05 02`) confirmed success —
+a deliberate choice, reasoned as "no point starting a 5-minute wait for a WiFi attempt already known
+to have failed." But that wait gives the camera time to dial the backend on its own in the
+background, and by the time our HTTP call arrived, the camera had *already* registered with correct
+data (confirmed by comparing timestamps: DB `registration_time` was over two minutes *before* our
+app's `wifi-configured` call). The null-write then stomped the correct data. The original Android
+app almost certainly notifies the backend immediately after sending credentials, well before the
+camera could realistically already be connected — which is why this bug likely never surfaces there,
+and why nobody had hit it before.
+
+**Fix applied (app-side, no backend changes):** `wifi-configured` is now sent from inside
+`runProvisioning` right after the camera acks the WiFi credentials (`05 81`), not after waiting for
+the join result. This restores the safe ordering — null-write first (harmless, nothing real to
+overwrite yet), camera's own registration second (overwrites it with correct data). If the WiFi
+turns out wrong, the backend's own 5-minute timeout handles that gracefully regardless.
+`PairingScreen` fires it via a fire-and-forget callback (`onWifiSent`) and threads whether it
+succeeded through to `BackendHandoffScreen` (`alreadyNotified` prop) so the notification is never
+sent twice.
+
+The backend bug itself is still live and unpatched (that's a production Python service, out of
+scope for this frontend to fix) — any device that already got poisoned by the old flow (recorded
+serials: `BL08809RAGDA981`, `BL08809RAGF5610`) needs a physical reset before it can be tested again.
 
 ## Running it
 

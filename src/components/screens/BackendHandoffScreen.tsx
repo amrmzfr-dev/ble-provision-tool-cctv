@@ -12,18 +12,23 @@ const POLL_TIMEOUT_MS = 6 * 60 * 1000 // slightly past the backend's own 5-minut
 
 interface BackendHandoffScreenProps {
   serial: string
+  /** True if PairingScreen already sent wifi-configured right after the WiFi ack — skip straight to polling instead of sending it again. */
+  alreadyNotified: boolean
   onDone: () => void
   onRetryWifi: () => void
 }
 
 type Phase = 'need-key' | 'submitting' | 'waiting' | 'connected' | 'failed'
 
-export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHandoffScreenProps) {
-  const [phase, setPhase] = useState<Phase>(getAdminKey() ? 'submitting' : 'need-key')
+export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryWifi }: BackendHandoffScreenProps) {
+  const [phase, setPhase] = useState<Phase>(() => {
+    if (alreadyNotified) return 'waiting'
+    return getAdminKey() ? 'submitting' : 'need-key'
+  })
   const [keyInput, setKeyInput] = useState('')
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const pollStartRef = useRef<number | null>(null)
+  const pollStartRef = useRef<number | null>(alreadyNotified ? Date.now() : null)
 
   useEffect(() => {
     if (phase !== 'submitting') return

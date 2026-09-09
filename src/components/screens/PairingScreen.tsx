@@ -1,6 +1,9 @@
 import { CheckCircle2, Loader2, RotateCcw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { postWifiConfigured } from '@/lib/api/client'
+import { ApiError } from '@/lib/api/config'
+import { logEvent } from '@/lib/debugLog'
 import {
   PROVISION_STAGE_LABEL,
   runProvisioning,
@@ -20,27 +23,53 @@ const STAGE_ORDER: ProvisionStage[] = [
 
 interface PairingScreenProps {
   device: BluetoothDevice
+  serial: string
   ssid: string
   password: string
-  onSuccess: (result: ProvisionResult) => void
+  /** backendNotified: whether wifi-configured was already sent to the backend during pairing — lets the next screen skip sending it again. */
+  onSuccess: (result: ProvisionResult, backendNotified: boolean) => void
   onBack: () => void
 }
 
-export function PairingScreen({ device, ssid, password, onSuccess, onBack }: PairingScreenProps) {
+export function PairingScreen({ device, serial, ssid, password, onSuccess, onBack }: PairingScreenProps) {
   const [stage, setStage] = useState<ProvisionStage>('connecting')
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const backendNotifiedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
     setError(null)
     setStage('connecting')
+    backendNotifiedRef.current = false
 
-    runProvisioning(device, ssid, password, (s) => {
-      if (!cancelled) setStage(s)
-    })
+    // Deliberately fired here — right after the camera acks the WiFi
+    // credentials, not after waiting for the join result — see the long
+    // comment on runProvisioning's onWifiSent param for why the timing
+    // matters. Never blocks/aborts the BLE flow if it fails.
+    const notifyBackend = () => {
+      logEvent('tx', `POST /device/${serial}/provisioning/wifi-configured`)
+      postWifiConfigured(serial)
+        .then((res) => {
+          backendNotifiedRef.current = true
+          logEvent('success', `wifi-configured accepted: ${JSON.stringify(res)}`)
+        })
+        .catch((err: unknown) => {
+          logEvent('error', `wifi-configured failed: ${err instanceof ApiError ? err.message : String(err)}`)
+        })
+    }
+
+    runProvisioning(
+      device,
+      ssid,
+      password,
+      (s) => {
+        if (!cancelled) setStage(s)
+      },
+      notifyBackend,
+    )
       .then((result) => {
-        if (!cancelled) onSuccess(result)
+        if (!cancelled) onSuccess(result, backendNotifiedRef.current)
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err))
