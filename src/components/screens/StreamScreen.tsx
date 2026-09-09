@@ -117,6 +117,7 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
 
         const player = mpegts.createPlayer({ type: 'mpegts', isLive: true, url: url.toString() })
         playerRef.current = player
+        player.attachMediaElement(video)
 
         // Wire up everything that can tell us what's actually happening —
         // previously the only log line was "Playing stream: ..." right after
