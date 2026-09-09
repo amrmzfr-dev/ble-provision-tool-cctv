@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getDeviceStatus, postWifiConfigured } from '@/lib/api/client'
-import { ApiError, getClientKey, setClientKey } from '@/lib/api/config'
+import { ApiError, getAdminKey, setAdminKey } from '@/lib/api/config'
 import type { DeviceStatus } from '@/lib/api/types'
 import { logEvent } from '@/lib/debugLog'
 
@@ -19,7 +19,7 @@ interface BackendHandoffScreenProps {
 type Phase = 'need-key' | 'submitting' | 'waiting' | 'connected' | 'failed'
 
 export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHandoffScreenProps) {
-  const [phase, setPhase] = useState<Phase>(getClientKey() ? 'submitting' : 'need-key')
+  const [phase, setPhase] = useState<Phase>(getAdminKey() ? 'submitting' : 'need-key')
   const [keyInput, setKeyInput] = useState('')
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -112,7 +112,7 @@ export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHan
         <div className="flex flex-1 flex-col gap-3 rounded-2xl border border-border bg-card p-5">
           <span className="flex items-center gap-2 text-sm font-semibold uppercase tracking-tight">
             <KeyRound className="size-4" />
-            Client API key needed
+            Admin API key needed
           </span>
           <p className="text-xs text-muted-foreground">
             Needed to tell the backend WiFi was configured. Kept only in this browser
@@ -121,7 +121,7 @@ export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHan
           <Input
             autoFocus
             type="password"
-            placeholder="X-Client-Key"
+            placeholder="X-Admin-Key"
             value={keyInput}
             onChange={(e) => setKeyInput(e.target.value)}
           />
@@ -129,7 +129,7 @@ export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHan
           <Button
             disabled={!keyInput}
             onClick={() => {
-              setClientKey(keyInput)
+              setAdminKey(keyInput)
               setPhase('submitting')
             }}
             size="lg"

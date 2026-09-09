@@ -89,9 +89,11 @@ admin-shaped. Forces re-login.
 
 ## Provisioning — used by this app
 
-**`POST /api/device/<serial>/provisioning/wifi-configured`**
-Auth: `X-Client-Key`. Body (optional): `{ user_id?, note? }`. Call right after BLE WiFi config
-succeeds. Starts a 5-minute `waiting_for_connection` window on the status endpoint.
+**`POST /api/device/<serial>/provisioning/wifi-configured`** ✅source — auth is `X-Client-Key`
+**or** `X-Admin-Key` (`@require_client_or_admin_key` in `api_server_listen_mode.py`; the docs this
+was originally extracted from said client-key-only, which was wrong). Body (optional):
+`{ user_id?, note? }`. Call right after BLE WiFi config succeeds. Starts a 5-minute
+`waiting_for_connection` window on the status endpoint.
 
 ```json
 { "success": true, "serial": "...", "status": "waiting_for_connection",

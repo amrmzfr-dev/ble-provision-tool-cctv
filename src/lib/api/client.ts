@@ -72,13 +72,14 @@ export function getLicenseInfo(): Promise<Record<string, unknown>> {
 
 // ---- Provisioning — used by this app ----
 
+/** Auth: client key or admin key, whichever is set (confirmed via @require_client_or_admin_key in api_server_listen_mode.py — the docs originally said client-key-only, which was wrong). */
 export function postWifiConfigured(
   serial: string,
   req: WifiConfiguredRequest = {},
 ): Promise<WifiConfiguredResponse> {
   return apiFetch(`/device/${serial}/provisioning/wifi-configured`, {
     method: 'POST',
-    auth: 'client',
+    auth: 'client-or-admin',
     body: req,
   })
 }
