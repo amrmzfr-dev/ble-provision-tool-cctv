@@ -1,0 +1,92 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Type-check and build
+        run: npm run build
+
+      - name: Set environment variables
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "SHA_SHORT=${SHA_SHORT}" >> $GITHUB_ENV
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/amrmzfr-dev/ble-provision-tool-cctv:prod
+            ghcr.io/amrmzfr-dev/ble-provision-tool-cctv:${{ env.SHA_SHORT }}
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: GHCR_TOKEN
+          script: |
+            set -e
+            APP_DIR=/opt/ble-provision-tool-cctv-prod
+            cd $APP_DIR
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u amrmzfr-dev --password-stdin
+
+            pull_ok=false
+            for i in 1 2 3; do
+              if docker compose -f docker-compose.prod.yml pull ble-provision; then
+                pull_ok=true
+                break
+              fi
+              echo "Pull attempt $i failed."
+              if [ $i -lt 3 ]; then
+                sleep 10
+              fi
+            done
+
+            if [ "$pull_ok" != true ]; then
+              echo "All pull attempts failed; aborting deploy. Currently running container is left untouched."
+              exit 1
+            fi
+
+            docker compose -f docker-compose.prod.yml up -d --force-recreate ble-provision
+            docker image prune -f || true
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

@@ -1,0 +1,17 @@
+services:
+  ble-provision:
+    image: ghcr.io/amrmzfr-dev/ble-provision-tool-cctv:prod
+    container_name: ble-provision-tool-cctv-prod
+    restart: unless-stopped
+    ports:
+      # Host port 3010 must not collide with anything already running on this
+      # VPS (e.g. ev-frontend-prod on 3000, ev-backend-prod on 8080). Check
+      # with `docker ps` / `ss -tlnp` before first deploy and change if needed —
+      # update the matching host nginx `proxy_pass` line to match.
+      - "3010:80"
+    networks:
+      - ble-provision-network
+
+networks:
+  ble-provision-network:
+    driver: bridge
