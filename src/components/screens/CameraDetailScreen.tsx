@@ -98,7 +98,7 @@ export function CameraDetailScreen({ serial, onBack }: CameraDetailScreenProps) 
       {/* ~70% of the page */}
       <div className="flex flex-col gap-2" style={{ flex: '7 1 0%' }}>
         <span className="text-xs font-semibold uppercase text-muted-foreground">Live view</span>
-        <StreamTapPanel serial={serial} />
+        <StreamTapPanel serial={serial} autoStart={false} />
       </div>
 
       {/* ~30% of the page */}

@@ -9,8 +9,10 @@ const MAX_LOG_LINES = 300
 // No separate 'streaming' phase - see the note above the effect that reads
 // the stream body for why setting one from inside that effect was itself the
 // bug that caused "0 chunks, 0.0 KB" forever. 'stopped' is a deliberate user
-// action (the Stop button), distinct from 'error'.
-export type StreamTapPhase = 'waiting-online' | 'connecting' | 'stopped' | 'error'
+// action (the Stop button), distinct from 'error'. 'idle' is only reachable
+// with autoStart: false - nothing happens (no polling, no requests) until
+// activate() is called.
+export type StreamTapPhase = 'idle' | 'waiting-online' | 'connecting' | 'stopped' | 'error'
 
 export interface StreamTapStats {
   chunks: number
@@ -41,8 +43,9 @@ function formatClock(date: Date): string {
  * self-abort bug (setPhase() from inside the read loop tearing down its own
  * fetch) only needs fixing once this way.
  */
-export function useStreamTap(serial: string) {
-  const [phase, setPhase] = useState<StreamTapPhase>('waiting-online')
+export function useStreamTap(serial: string, options?: { autoStart?: boolean }) {
+  const autoStart = options?.autoStart ?? true
+  const [phase, setPhase] = useState<StreamTapPhase>(autoStart ? 'waiting-online' : 'idle')
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<StreamTapStats | null>(null)
   const [lines, setLines] = useState<string[]>([])
@@ -193,7 +196,16 @@ export function useStreamTap(serial: string) {
     setPhase('waiting-online')
   }
 
+  // From 'idle' only - the deliberate "start streaming" action when
+  // autoStart is false.
+  const activate = () => {
+    setError(null)
+    setStats(null)
+    setLines([])
+    setPhase('waiting-online')
+  }
+
   const isLive = phase === 'connecting' && stats !== null
 
-  return { phase, error, stats, lines, logBoxRef, isLive, stop, restart }
+  return { phase, error, stats, lines, logBoxRef, isLive, stop, restart, activate }
 }

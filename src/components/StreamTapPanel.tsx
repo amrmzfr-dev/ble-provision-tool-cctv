@@ -7,6 +7,8 @@ interface StreamTapPanelProps {
   serial: string
   /** Fixed height for the content box - same box for every phase, see the note below. */
   heightClassName?: string
+  /** False shows an idle "ready to test" state with a Start button instead of connecting immediately on mount. */
+  autoStart?: boolean
 }
 
 /**
@@ -16,20 +18,30 @@ interface StreamTapPanelProps {
  * player.
  *
  * The outer shape (status strip height, content box height, button row
- * height) is IDENTICAL across every phase - default/waiting/connecting,
- * live, stopped, and error. Every phase used to render a different-sized
- * block (an error banner, a centered spinner card, or the log box, each
- * with their own height, plus the button row only existing at all once
- * stats existed) so the whole card visibly resized as the stream moved
- * through its lifecycle. Now there is exactly one status strip, one content
- * box, and one button row, always - only what's drawn *inside* each of
- * those three fixed slots changes.
+ * height) is IDENTICAL across every phase - idle/waiting/connecting, live,
+ * stopped, and error. Every phase used to render a different-sized block
+ * (an error banner, a centered spinner card, or the log box, each with
+ * their own height, plus the button row only existing at all once stats
+ * existed) so the whole card visibly resized as the stream moved through
+ * its lifecycle. Now there is exactly one status strip, one content box,
+ * and one button row, always - only what's drawn *inside* each of those
+ * three fixed slots changes.
  */
-export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPanelProps) {
-  const { phase, error, stats, lines, logBoxRef, isLive, stop, restart } = useStreamTap(serial)
+export function StreamTapPanel({ serial, heightClassName = 'h-72', autoStart = true }: StreamTapPanelProps) {
+  const { phase, error, stats, lines, logBoxRef, isLive, stop, restart, activate } = useStreamTap(serial, {
+    autoStart,
+  })
 
   const statusLabel =
-    phase === 'error' ? 'Error' : phase === 'stopped' ? 'Stopped' : isLive ? 'Live' : 'Connecting…'
+    phase === 'idle'
+      ? 'Ready'
+      : phase === 'error'
+        ? 'Error'
+        : phase === 'stopped'
+          ? 'Stopped'
+          : isLive
+            ? 'Live'
+            : 'Connecting…'
 
   return (
     <div className="flex flex-col gap-3">
@@ -49,7 +61,13 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
           'shrink-0 overflow-y-auto rounded-2xl border border-border bg-[#0c0c0c] p-3 font-mono text-[11px] leading-relaxed text-lime',
         )}
       >
-        {phase === 'error' ? (
+        {phase === 'idle' ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <Radio className="size-8 text-white/40" strokeWidth={1.5} />
+            <p className="text-sm font-semibold text-white/85">Camera connected - ready to test the stream</p>
+            <p className="text-justify text-xs text-white/50">Press Start below when you're ready to begin.</p>
+          </div>
+        ) : phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <AlertTriangle className="size-6 text-destructive" strokeWidth={1.5} />
             <p className="text-sm font-semibold text-destructive">Couldn't confirm the stream</p>
@@ -82,12 +100,16 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
         is streaming live.
       </p>
 
-      {/* One button, not two side by side with one always invisible - it
-          just changes what it does depending on phase. Only Stop and
-          Start/Retry are ever mutually applicable, so there's never a case
-          where two actions are needed at once. */}
+      {/* One button, not two/three side by side with the rest invisible - it
+          just changes what it does depending on phase. Only one of
+          Start/Stop/Retry is ever applicable at a time. */}
       <div className="shrink-0">
-        {isLive ? (
+        {phase === 'idle' ? (
+          <Button variant="outline" className="w-full" onClick={activate}>
+            <Play />
+            Start
+          </Button>
+        ) : isLive ? (
           <Button variant="outline" className="w-full" onClick={stop}>
             <Square />
             Stop
