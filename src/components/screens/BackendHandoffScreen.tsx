@@ -6,6 +6,7 @@ import { ApiError } from '@/lib/api/config'
 import { upsertMyCamera } from '@/lib/api/myCamerasClient'
 import type { DeviceStatus } from '@/lib/api/types'
 import { logEvent } from '@/lib/debugLog'
+import { cn } from '@/lib/utils'
 
 const POLL_INTERVAL_MS = 4000
 const POLL_TIMEOUT_MS = 6 * 60 * 1000 // slightly past the backend's own 5-minute window
@@ -150,7 +151,8 @@ export function BackendHandoffScreen({
 
       {(phase === 'submitting' || phase === 'waiting') && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-5 text-center">
-          <Loader2 className="size-8 animate-spin text-primary" />
+          {/* Nothing is actually in progress during a preview - previewOnly skips the effect that would ever move this on, so the spinner would otherwise animate forever for no reason. */}
+          <Loader2 className={cn('size-8 text-primary', !previewOnly && 'animate-spin')} />
           <div>
             <p className="text-sm font-semibold">
               {phase === 'submitting' ? 'Telling the server WiFi is set…' : 'Waiting for the camera to come online…'}
