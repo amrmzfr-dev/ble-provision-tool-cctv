@@ -4,15 +4,14 @@ import { Button } from '@/components/ui/button'
 import { BackendHandoffScreen } from '@/components/screens/BackendHandoffScreen'
 import { FindDeviceScreen } from '@/components/screens/FindDeviceScreen'
 import { PairingScreen } from '@/components/screens/PairingScreen'
-import { ResultScreen } from '@/components/screens/ResultScreen'
 import { ScanSerialScreen } from '@/components/screens/ScanSerialScreen'
 import { WifiCredentialsScreen } from '@/components/screens/WifiCredentialsScreen'
 import { useBleScan } from '@/hooks/useBleScan'
 import { deviceMatchesSerial } from '@/lib/ble/serial'
 import { cn } from '@/lib/utils'
 
-type Step = 'scan' | 'find' | 'confirm' | 'wifi' | 'pairing' | 'backend'
-const STEPS: Step[] = ['scan', 'find', 'confirm', 'wifi', 'pairing', 'backend']
+type Step = 'scan' | 'find' | 'wifi' | 'pairing' | 'backend'
+const STEPS: Step[] = ['scan', 'find', 'wifi', 'pairing', 'backend']
 
 function StepDots({ step }: { step: Step }) {
   const index = STEPS.indexOf(step)
@@ -39,19 +38,20 @@ export function DeviceScanner() {
   const [wifiError, setWifiError] = useState<string | null>(null)
   const { device, error, scanning, scan, reset } = useBleScan()
 
+  // Found -> straight to WiFi entry, no separate confirmation screen. The
+  // browser's own device picker already doubles as manual confirmation.
   useEffect(() => {
-    if (device && step === 'find') setStep('confirm')
+    if (device && step === 'find') setStep('wifi')
   }, [device, step])
 
   const serialMatch = device ? deviceMatchesSerial(device.name, serial) : false
 
   const goBack = () => {
     if (step === 'find') setStep('scan')
-    if (step === 'confirm') {
+    if (step === 'wifi') {
       reset()
       setStep('find')
     }
-    if (step === 'wifi') setStep('confirm')
   }
 
   return (
@@ -78,24 +78,18 @@ export function DeviceScanner() {
         )}
 
         {step === 'find' && (
-          <FindDeviceScreen serial={serial} scanning={scanning} error={error} onScan={scan} />
-        )}
-
-        {step === 'confirm' && device && (
-          <ResultScreen
-            device={device}
-            serialMatch={serialMatch}
-            onScanAgain={() => {
-              reset()
-              setStep('find')
-            }}
-            onContinue={() => setStep('wifi')}
+          <FindDeviceScreen
+            serial={serial}
+            scanning={scanning}
+            error={error}
+            onScan={() => scan('all-devices')}
           />
         )}
 
         {step === 'wifi' && (
           <WifiCredentialsScreen
             deviceName={device?.name ?? serial}
+            serialMatch={serialMatch}
             initialError={wifiError}
             onSubmit={(ssid, password) => {
               setWifiSsid(ssid)

@@ -1,15 +1,22 @@
 import { Eye, EyeOff, Wifi } from 'lucide-react'
 import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 interface WifiCredentialsScreenProps {
   deviceName: string
+  serialMatch: boolean
   initialError?: string | null
   onSubmit: (ssid: string, password: string) => void
 }
 
-export function WifiCredentialsScreen({ deviceName, initialError, onSubmit }: WifiCredentialsScreenProps) {
+export function WifiCredentialsScreen({
+  deviceName,
+  serialMatch,
+  initialError,
+  onSubmit,
+}: WifiCredentialsScreenProps) {
   const [ssid, setSsid] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -18,15 +25,19 @@ export function WifiCredentialsScreen({ deviceName, initialError, onSubmit }: Wi
     <div className="flex flex-1 flex-col gap-5">
       <div>
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Step 4 of 6
+          Step 3 of 5
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
           WiFi for the camera
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Connected to <code className="font-mono font-medium text-foreground">{deviceName}</code>.
-          This gets sent to the camera over Bluetooth, not saved anywhere.
-        </p>
+        <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Connected to <code className="font-mono font-medium text-foreground">{deviceName}</code>
+          </span>
+          <Badge variant={serialMatch ? 'success' : 'destructive'}>
+            {serialMatch ? 'serial matches' : 'check this is the right camera'}
+          </Badge>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 rounded-2xl border border-border bg-card p-5">

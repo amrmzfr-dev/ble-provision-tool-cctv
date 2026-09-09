@@ -89,7 +89,7 @@ export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHan
     <div className="flex flex-1 flex-col gap-5">
       <div>
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Step 6 of 6
+          Step 5 of 5
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
           Connecting to the server

@@ -58,7 +58,7 @@ export function PairingScreen({ device, ssid, password, onSuccess, onBack }: Pai
     <div className="flex flex-1 flex-col gap-5">
       <div>
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Step 5 of 6
+          Step 4 of 5
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Pairing</h2>
         <p className="mt-1 text-sm text-muted-foreground">

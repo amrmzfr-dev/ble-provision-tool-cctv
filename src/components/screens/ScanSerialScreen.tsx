@@ -32,7 +32,7 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
     <div className="flex flex-1 flex-col gap-5">
       <div>
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Step 1 of 6
+          Step 1 of 5
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
           Scan the camera's serial
