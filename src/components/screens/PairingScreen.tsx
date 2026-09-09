@@ -100,8 +100,11 @@ export function PairingScreen({ device, serial, ssid, password, onSuccess, onBac
 
       <div className="flex flex-1 flex-col gap-2 rounded-2xl border border-border bg-card p-5">
         {STAGE_ORDER.map((s, i) => {
-          const done = !error && i < currentIndex
-          const active = !error && i === currentIndex
+          const done = !error && !previewOnly && i < currentIndex
+          // Nothing is actually in progress during a preview - stage 0
+          // would otherwise still show as "active" (spinning) forever,
+          // since previewOnly skips the effect that would ever move it on.
+          const active = !error && !previewOnly && i === currentIndex
           const failed = error !== null && i === currentIndex
           return (
             <div key={s} className="flex items-center gap-3 py-1.5">

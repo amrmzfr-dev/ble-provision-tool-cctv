@@ -215,7 +215,15 @@ export function DeviceScanner() {
             step that hasn't been reached yet (e.g. 'pairing' with no device
             found) shows precisely what it will look like, it just can't be
             interacted with until it's actually reached in order. */}
-        <div className={cn('flex flex-1 flex-col', !isViewingRealStep && 'pointer-events-none opacity-75')}>
+        <div
+          className={cn('flex flex-1 flex-col', !isViewingRealStep && 'opacity-75')}
+          // inert (not just pointer-events-none) - blocks keyboard typing
+          // into an autoFocus'd input too, which pointer-events alone
+          // doesn't: focus/keystrokes aren't pointer interactions, so a
+          // field that autofocuses on mount was still typeable during
+          // preview even though clicking it was blocked.
+          inert={!isViewingRealStep}
+        >
           {renderStep(previewedStep)}
         </div>
       </div>

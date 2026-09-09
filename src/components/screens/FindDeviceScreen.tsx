@@ -54,8 +54,6 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
           device. Pick it from that list, then pairing continues automatically.
         </p>
 
-        <div className="flex-1" />
-
         <Button onClick={() => onScan('manufacturer')} disabled={scanning} size="lg" className="w-full">
           <span className="relative flex size-5 items-center justify-center">
             {scanning && (
