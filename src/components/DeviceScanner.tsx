@@ -74,6 +74,17 @@ export function DeviceScanner() {
 
   const serialMatch = device ? deviceMatchesSerial(device.name, serial) : false
 
+  const goHome = () => {
+    clearSessionState()
+    reset()
+    setSerial('')
+    setWifiSsid('')
+    setWifiPassword('')
+    setWifiError(null)
+    setBackendNotified(false)
+    setStep('scan')
+  }
+
   const goBack = () => {
     if (step === 'find') setStep('scan')
     if (step === 'wifi') {
@@ -159,18 +170,10 @@ export function DeviceScanner() {
           <BackendHandoffScreen
             serial={serial}
             alreadyNotified={backendNotified}
-            onDone={() => {
-              clearSessionState()
-              reset()
-              setSerial('')
-              setWifiSsid('')
-              setWifiPassword('')
-              setWifiError(null)
-              setBackendNotified(false)
-              setStep('scan')
-            }}
+            onDone={goHome}
             onRetryWifi={() => setStep('wifi')}
             onViewStream={() => setStep('stream')}
+            onCancel={goHome}
           />
         )}
 

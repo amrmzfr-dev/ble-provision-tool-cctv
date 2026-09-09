@@ -17,11 +17,13 @@ interface BackendHandoffScreenProps {
   onDone: () => void
   onRetryWifi: () => void
   onViewStream: () => void
+  /** Bail out while still submitting/waiting — the poll has no other exit besides connecting or a 6-minute timeout. */
+  onCancel: () => void
 }
 
 type Phase = 'need-key' | 'submitting' | 'waiting' | 'connected' | 'failed'
 
-export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryWifi, onViewStream }: BackendHandoffScreenProps) {
+export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryWifi, onViewStream, onCancel }: BackendHandoffScreenProps) {
   const [phase, setPhase] = useState<Phase>(() => {
     if (alreadyNotified) return 'waiting'
     return getAdminKey() ? 'submitting' : 'need-key'
@@ -179,6 +181,9 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
               </p>
             )}
           </div>
+          <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground">
+            Cancel and go back home
+          </Button>
         </div>
       )}
 
