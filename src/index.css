@@ -128,6 +128,22 @@
   animation-delay: 0.8s;
 }
 
+/* Screen-transition fade, replayed each time by remounting on React key
+   change (see DeviceScanner's `key={step}`). */
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-in {
+  animation: screenIn 0.22s ease-out;
+}
+
 /* Soft glow used behind hero icon badges and the result state card. */
 .glow-primary {
   box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 30%, transparent),
