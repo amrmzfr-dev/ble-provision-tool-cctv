@@ -94,9 +94,19 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
           return
         }
 
+        if (!videoRef.current) {
+          // Should never happen now that <video> is always mounted, but
+          // load() throws an opaque IllegalStateException if this is skipped
+          // — fail loudly instead of silently calling load() unattached.
+          logEvent('error', 'video element ref not ready, cannot attach player')
+          setError('Internal error: video element not ready.')
+          setPhase('error')
+          return
+        }
+
         const player = mpegts.createPlayer({ type: 'flv', isLive: true, url: url.toString() })
         playerRef.current = player
-        if (videoRef.current) player.attachMediaElement(videoRef.current)
+        player.attachMediaElement(videoRef.current)
         player.on(mpegts.Events.ERROR, (_type, detail) => {
           if (cancelled) return
           logEvent('error', `Stream player error: ${String(detail)}`)
@@ -150,10 +160,23 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
         </p>
       </div>
 
-      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
-        {phase === 'playing' ? (
-          <video ref={videoRef} className="aspect-video w-full bg-black" autoPlay muted playsInline controls />
-        ) : (
+      <div className="relative flex flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+        {/* Always mounted, even before we're playing — mpegts.js requires
+            attachMediaElement() to run before load(), which means the <video>
+            must already exist in the DOM by the time the 'loading' phase
+            effect runs. Rendering it only for phase === 'playing' left
+            videoRef.current null at that point (IllegalStateException:
+            HTMLMediaElement must be attached before load()!). */}
+        <video
+          ref={videoRef}
+          className="aspect-video w-full bg-black"
+          style={{ display: phase === 'playing' ? 'block' : 'none' }}
+          autoPlay
+          muted
+          playsInline
+          controls
+        />
+        {phase !== 'playing' && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-5 text-center">
             {phase === 'error' ? (
               <>
