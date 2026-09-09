@@ -143,7 +143,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
           </span>
           <p className="text-xs text-muted-foreground">
             Needed to tell the backend WiFi was configured. Kept only in this browser
-            (localStorage), never sent anywhere but api.czeros.tech.
+            (localStorage), never sent anywhere but cctv.czeros.tech.
           </p>
           <Input
             autoFocus

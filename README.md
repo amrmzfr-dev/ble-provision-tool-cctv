@@ -150,9 +150,26 @@ VPS as the EV installation site (not the camera backend's VPS). `.github/workflo
 builds and pushes an image to `ghcr.io/amrmzfr-dev/ble-provision-tool-cctv`, then SSHes in and runs
 `docker compose -f docker-compose.prod.yml up -d`.
 
-The container's own nginx (`nginx.conf`) proxies `/api/*` to `https://api.czeros.tech` server-side,
+The container's own nginx (`nginx.conf`) proxies `/api/*` to `https://cctv.czeros.tech` server-side
+(the camera backend's actual public domain — its nginx on 56.68.52.66 is the only thing serving it),
 so the browser only ever talks to `cctv-provision.czeros.tech` — same-origin, no CORS config needed
 on the camera backend.
+
+### A real DNS mix-up — `api.czeros.tech` vs `cctv.czeros.tech`
+
+This proxy originally pointed at `https://api.czeros.tech`, which reads like the obvious API
+domain — it's even hardcoded as the CORS default inside `api_server_listen_mode.py` itself. But it
+resolves to the **EV installation VPS** (103.20.240.48, this app's own host), not the camera
+backend, and answers from something else there entirely (that VPS also happens to run
+`app.czeros.tech`, an unrelated internal admin dashboard product — neither one is the CCTV API).
+The real backend is only ever reachable at `cctv.czeros.tech` → 56.68.52.66, confirmed by checking
+that host's own nginx (`sites-enabled` serves `cctv.czeros.tech` proxying to `127.0.0.1:5000` —
+there's an old, disabled `cctv-api.backup` config for `api.czeros.tech` that was never wired up).
+
+Symptom this caused: every WiFi-configured notification and status poll silently succeeded against
+the wrong host, so `BackendHandoffScreen` sat at "waiting for the camera to come online" forever —
+not because of the wifi-configured timing bug (already fixed, see below), but because the app
+wasn't even asking the real backend. Fixed by pointing `nginx.conf`'s proxy at `cctv.czeros.tech`.
 
 **One-time setup this repo cannot do for you** (needs access to GitHub repo settings, DNS, and the
 VPS):

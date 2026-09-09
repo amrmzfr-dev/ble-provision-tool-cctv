@@ -30,7 +30,7 @@ export function AdminKeyGate({ onContinue }: AdminKeyGateProps) {
         <p className="mt-1 text-xs text-white/50">
           Needed before pairing can start — the backend has to be notified the moment WiFi is
           sent, with nothing in between. Kept only in this browser, never sent anywhere but
-          api.czeros.tech.
+          cctv.czeros.tech.
         </p>
         <Input
           autoFocus

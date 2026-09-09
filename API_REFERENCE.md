@@ -4,7 +4,16 @@ Full endpoint catalog for `cctv-api-prod` (`api_server_listen_mode.py`), extract
 `cctv-api-prod/docs/*.md` and cross-checked against the Flask source where docs looked stale.
 This app talks to it through its own nginx's `/api/*` proxy (see `nginx.conf`), so from the
 frontend's point of view every path below is called relative (`/api/...`), never against
-`api.czeros.tech` directly — that avoids CORS entirely.
+`cctv.czeros.tech` directly — that avoids CORS entirely.
+
+**Domain note:** the real backend is only ever reachable at `cctv.czeros.tech` (56.68.52.66) — its
+nginx is the one server actually proxying to the Flask app on `127.0.0.1:5000`. `api.czeros.tech`
+looks like it should be the API domain (and is even hardcoded as the CORS default inside
+`api_server_listen_mode.py` itself), but it resolves to the *EV installation VPS* (103.20.240.48),
+not this one, and answers from something else there — not this backend. This app's `nginx.conf`
+briefly proxied to `api.czeros.tech` by mistake; every status poll during that time returned a
+plausible-looking but never-updating `waiting_for_connection`, since whatever answered there never
+received the camera's real login. Fixed to proxy to `cctv.czeros.tech`.
 
 Endpoints marked **✅source** were confirmed by reading the actual route in
 `api_server_listen_mode.py`; **📄doc** means the shape comes from the docs only (internally
@@ -18,11 +27,14 @@ past Provisioning is dead code today, wired up for whenever a later phase needs 
 
 ## Base URL & cross-cutting config
 
-- **Base URL:** `https://api.czeros.tech` (no version prefix) — reached via this app's own nginx proxy
+- **Base URL:** `https://cctv.czeros.tech` (no version prefix) — reached via this app's own nginx
+  proxy. See the domain note above — `api.czeros.tech` does not reach this backend.
 - **Ports:** Flask API on `127.0.0.1:5000` behind nginx; a separate TCP listen server on `20000`
   is where cameras register — unrelated to this HTTP API
 - **CORS** (✅source, `api_server_listen_mode.py:104-155`): `CORS_MODE` env var — `restricted`
-  (default, allow-list is just `https://api.czeros.tech` unless `ALLOWED_ORIGINS` is set),
+  (default, allow-list is hardcoded to `https://api.czeros.tech` — a stale placeholder in the
+  backend source itself, unrelated to this app since it never calls the API directly from the
+  browser — unless `ALLOWED_ORIGINS` is set),
   `discover` (logs + allows everything, for finding client origins), `permissive` (allows all —
   not for production)
 - **Rate limits:** `admin_login` 5/60s · `admin_sync_device_time` 10/300s ·

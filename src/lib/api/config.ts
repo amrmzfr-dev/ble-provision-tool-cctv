@@ -1,4 +1,4 @@
-// Relative — this app's own nginx proxies /api/* to https://api.czeros.tech
+// Relative — this app's own nginx proxies /api/* to https://cctv.czeros.tech
 // server-side (see nginx.conf), so the browser only ever talks same-origin.
 export const API_BASE = '/api'
 
