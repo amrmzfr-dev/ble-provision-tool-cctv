@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace BleProvisionApi.Services;
@@ -67,5 +68,24 @@ public class CctvBackendProxy(HttpClient httpClient, IOptions<CctvBackendOptions
             await using var upstream = await response.Content.ReadAsStreamAsync(context.RequestAborted);
             await upstream.CopyToAsync(context.Response.Body, context.RequestAborted);
         }
+    }
+
+    /// <summary>
+    /// For server-side calls that need to actually read/filter the JSON
+    /// (e.g. the bulk "/admin/cameras" list for MyCamerasController's
+    /// refresh-all), unlike ForwardAsync above which just pipes bytes
+    /// through untouched.
+    /// </summary>
+    public async Task<JsonElement> GetJsonAsync(string path)
+    {
+        var targetUrl = $"{_options.BaseUrl.TrimEnd('/')}/api/{path}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+        request.Headers.TryAddWithoutValidation("X-Admin-Key", _options.AdminKey);
+
+        using var response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        var result = await JsonSerializer.DeserializeAsync<JsonElement>(stream);
+        return result ?? throw new InvalidOperationException($"Empty JSON response from {targetUrl}");
     }
 }

@@ -4,16 +4,16 @@ import { BottomNav, type NavTab } from '@/components/BottomNav'
 import { DeviceScanner } from '@/components/DeviceScanner'
 import { LoginScreen } from '@/components/LoginScreen'
 import { LogConsole } from '@/components/LogConsole'
+import { CameraDetailScreen } from '@/components/screens/CameraDetailScreen'
 import { MyCamerasScreen } from '@/components/screens/MyCamerasScreen'
-import { StreamScreen } from '@/components/screens/StreamScreen'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
 import { clearAuthToken, getAuthToken, subscribeAuthToken } from '@/lib/api/config'
 
-type View = { name: 'pairing' } | { name: 'my-cameras' } | { name: 'stream'; serial: string }
+type View = { name: 'pairing' } | { name: 'my-cameras' } | { name: 'camera-detail'; serial: string }
 
 function viewToTab(view: View): NavTab {
-  // The stream screen is only ever reached from My Cameras, so it stays
+  // The detail screen is only ever reached from My Cameras, so it stays
   // grouped under that tab for highlighting purposes.
   return view.name === 'pairing' ? 'pairing' : 'my-cameras'
 }
@@ -51,12 +51,13 @@ export default function App() {
         ) : view.name === 'pairing' ? (
           <DeviceScanner />
         ) : view.name === 'my-cameras' ? (
-          <MyCamerasScreen
-            onBack={() => setView({ name: 'pairing' })}
-            onOpenStream={(serial) => setView({ name: 'stream', serial })}
-          />
+          <MyCamerasScreen onOpenCamera={(serial) => setView({ name: 'camera-detail', serial })} />
         ) : (
-          <StreamScreen serial={view.serial} onBack={() => setView({ name: 'my-cameras' })} />
+          <CameraDetailScreen
+            serial={view.serial}
+            onBack={() => setView({ name: 'my-cameras' })}
+            onRemoved={() => setView({ name: 'my-cameras' })}
+          />
         )}
       </div>
       <LogConsole />

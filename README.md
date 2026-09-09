@@ -79,10 +79,21 @@ the real camera backend. Three jobs:
    `POST /api/auth/users` — no separate admin role, this is a small internal tool.
 3. **"My Cameras"** (`MyCamerasController`, `MyCamerasScreen.tsx`) — a personal revisit list, not an
    event log: one row per serial, upserted automatically the moment `BackendHandoffScreen` sees
-   `connected` during pairing. Each row can refresh its live status, jump into `StreamScreen`, or
-   trigger `adminResetDevice` — all without redoing Bluetooth discovery. The real camera backend
-   remains the source of truth for actual device state; this table just remembers which serials this
-   tool has touched.
+   `connected` during pairing. The real camera backend remains the source of truth for actual device
+   state; this table just remembers which serials this tool has touched.
+
+   `MyCamerasScreen.tsx` is deliberately just a plain tappable list — no per-row action buttons.
+   Tapping a row opens `CameraDetailScreen.tsx`, which has everything: a status tab (with its own
+   live re-check), a stream tab (`StreamTapPanel`, embedding the same logic `StreamScreen` uses —
+   see `useStreamTap.ts`), and a reset tab with a real confirmation step and an explanation of when
+   reset does and doesn't work. Polling for the embedded stream tap only runs while that tab is
+   actually open on that one camera, so it doesn't add background load across the whole list.
+
+   Refreshing status for the *list* is one bulk call, not one request per row: the real backend's
+   `GET /admin/cameras` already returns every camera's live status in a single response, so
+   `MyCamerasController.RefreshAll` (`POST /api/mycameras/refresh`) fetches that once
+   (`CctvBackendProxy.GetJsonAsync`) and filters it down to just the serials in this list, updating
+   all of them in one batch.
 
 **Deployment:** `docker-compose.prod.yml` adds `ble-backend` (this API) and `ble-postgres` alongside
 the existing `ble-provision` frontend container, all on the same `ble-provision-network`.

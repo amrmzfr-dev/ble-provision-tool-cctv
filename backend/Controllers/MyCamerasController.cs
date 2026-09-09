@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BleProvisionApi.Data;
 using BleProvisionApi.Data.Entities;
+using BleProvisionApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ public record CameraDto(string Serial, string? Label, string? LastStatus, DateTi
 
 [ApiController]
 [Route("api/mycameras")]
-public class MyCamerasController(AppDbContext db) : ControllerBase
+public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogger<MyCamerasController> logger) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<CameraDto>>> List()
@@ -58,6 +59,63 @@ public class MyCamerasController(AppDbContext db) : ControllerBase
         camera.LastStatusAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync();
         return NoContent();
+    }
+
+    /// <summary>
+    /// Refreshes every camera in the list with one call instead of one
+    /// request per row: the real backend's /admin/cameras already returns
+    /// every camera's live status in a single response, so this fetches
+    /// that once and filters it down to just what's in this list, updating
+    /// all of them in one batch.
+    /// </summary>
+    [HttpPost("refresh")]
+    public async Task<ActionResult<List<CameraDto>>> RefreshAll()
+    {
+        var cameras = await db.Cameras.ToListAsync();
+        if (cameras.Count == 0) return Ok(new List<CameraDto>());
+
+        System.Text.Json.JsonElement bulk;
+        try
+        {
+            bulk = await proxy.GetJsonAsync("admin/cameras");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Bulk camera refresh failed to reach the camera backend");
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = "backend_unreachable", message = ex.Message });
+        }
+
+        var statusBySerial = new Dictionary<string, string>();
+        if (bulk.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var entry in bulk.EnumerateArray())
+            {
+                if (entry.TryGetProperty("serial", out var serialProp) &&
+                    entry.TryGetProperty("status", out var statusProp) &&
+                    serialProp.GetString() is { } serial)
+                {
+                    statusBySerial[serial] = statusProp.GetString() ?? "unknown";
+                }
+            }
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var camera in cameras)
+        {
+            if (statusBySerial.TryGetValue(camera.Serial, out var status))
+            {
+                camera.LastStatus = status;
+                camera.LastStatusAt = now;
+            }
+            // Not in the bulk list at all (never registered with the camera
+            // backend, or it's been restarted since) — leave the last known
+            // status alone rather than overwriting it with a guess.
+        }
+        await db.SaveChangesAsync();
+
+        return Ok(cameras
+            .OrderByDescending(c => c.AddedAt)
+            .Select(c => new CameraDto(c.Serial, c.Label, c.LastStatus, c.LastStatusAt, c.AddedAt)));
     }
 
     [HttpDelete("{serial}")]

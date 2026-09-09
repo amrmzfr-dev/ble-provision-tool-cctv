@@ -22,6 +22,11 @@ export function updateMyCameraStatus(serial: string, status: string): Promise<vo
   return apiFetch(`/mycameras/${serial}/status`, { method: 'PUT', body: status })
 }
 
+/** One request refreshes every camera in the list — the backend fetches the real backend's bulk /admin/cameras once and filters it down, instead of one status call per row. */
+export function refreshAllMyCameras(): Promise<CameraDto[]> {
+  return apiFetch('/mycameras/refresh', { method: 'POST' })
+}
+
 export function removeMyCamera(serial: string): Promise<void> {
   return apiFetch(`/mycameras/${serial}`, { method: 'DELETE' })
 }
