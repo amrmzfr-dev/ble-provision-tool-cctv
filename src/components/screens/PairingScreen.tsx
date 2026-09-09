@@ -22,22 +22,25 @@ const STAGE_ORDER: ProvisionStage[] = [
 ]
 
 interface PairingScreenProps {
-  device: BluetoothDevice
+  device?: BluetoothDevice
   serial: string
   ssid: string
   password: string
   /** backendNotified: whether wifi-configured was already sent to the backend during pairing - lets the next screen skip sending it again. */
   onSuccess: (result: ProvisionResult, backendNotified: boolean) => void
   onBack: () => void
+  /** True while just being previewed (swiped ahead of real progress) - shows the exact same layout, frozen on the first stage, without ever touching a real BLE device. */
+  previewOnly?: boolean
 }
 
-export function PairingScreen({ device, serial, ssid, password, onSuccess, onBack }: PairingScreenProps) {
+export function PairingScreen({ device, serial, ssid, password, onSuccess, onBack, previewOnly }: PairingScreenProps) {
   const [stage, setStage] = useState<ProvisionStage>('connecting')
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const backendNotifiedRef = useRef(false)
 
   useEffect(() => {
+    if (previewOnly || !device) return
     let cancelled = false
     setError(null)
     setStage('connecting')
@@ -91,7 +94,7 @@ export function PairingScreen({ device, serial, ssid, password, onSuccess, onBac
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Pairing</h2>
         <p className="mt-1 text-justify text-sm text-muted-foreground">
-          Keep this tab open and the camera nearby - this only takes a few seconds.
+          Keep this tab open and the camera nearby. This only takes a few seconds.
         </p>
       </div>
 

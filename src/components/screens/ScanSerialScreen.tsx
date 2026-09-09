@@ -76,7 +76,7 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
                 <p>
                   There are <strong className="text-foreground">two</strong> QR codes on the
                   charger's label. Scan the <strong className="text-foreground">small</strong> one
-                  near the Perodua logo at the top - <strong className="text-foreground">not</strong>{' '}
+                  near the Perodua logo at the top, <strong className="text-foreground">not</strong>{' '}
                   the larger one further down next to the Charging Pile ID.
                 </p>
               </div>
@@ -107,7 +107,7 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
             <QrCode className="size-8" />
           </div>
           <p className="max-w-[26ch] text-justify text-sm text-muted-foreground">
-            Ready when you are - this opens your camera to scan the QR code.
+            Ready when you are. This opens your camera to scan the QR code.
           </p>
           <Button size="lg" className="w-full" onClick={() => setMode('camera')}>
             <QrCode />

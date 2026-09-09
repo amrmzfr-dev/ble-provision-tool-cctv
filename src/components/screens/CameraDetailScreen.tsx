@@ -113,13 +113,13 @@ export function CameraDetailScreen({ serial, onBack }: CameraDetailScreenProps) 
 
           {resetState === 'done' ? (
             <p className="rounded-xl bg-lime/10 p-2 text-xs text-lime">
-              Factory reset sent - the camera should reboot into pairing mode shortly.
+              Factory reset sent. The camera should reboot into pairing mode shortly.
             </p>
           ) : resetState === 'confirming' ? (
             <div className="flex flex-col gap-2 rounded-xl bg-destructive/10 p-2">
               <span className="flex items-center gap-2 text-xs font-semibold text-destructive uppercase">
                 <AlertTriangle className="size-4" />
-                This wipes all config - irreversible
+                This wipes all config, irreversible
               </span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => setResetState('idle')}>

@@ -39,7 +39,7 @@ export function LoginScreen() {
       </div>
       <div className="text-center">
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Sign in</h2>
-        <p className="mt-1 text-sm text-muted-foreground">CCTV pairing tool - testers only</p>
+        <p className="mt-1 text-sm text-muted-foreground">CCTV pairing tool for testers</p>
       </div>
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3">
         <Input

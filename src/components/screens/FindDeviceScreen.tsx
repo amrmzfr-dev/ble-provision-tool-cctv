@@ -51,7 +51,7 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
         </div>
         <p className="max-w-[26ch] text-justify text-sm text-muted-foreground">
           Your browser will show its own picker, pre-filtered to just this camera's kind of
-          device - pick it from that list, then pairing continues automatically.
+          device. Pick it from that list, then pairing continues automatically.
         </p>
 
         <div className="flex-1" />

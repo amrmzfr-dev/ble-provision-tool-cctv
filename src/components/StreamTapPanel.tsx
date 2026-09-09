@@ -51,7 +51,7 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72', autoStart = t
           {statusLabel}
         </span>
         <span className="font-mono text-xs text-muted-foreground">
-          {stats ? `${stats.chunks} chunks · ${(stats.bytes / 1024).toFixed(1)} KB` : '- chunks · - KB'}
+          {stats ? `${stats.chunks} chunks · ${(stats.bytes / 1024).toFixed(1)} KB` : 'not started yet'}
         </span>
       </div>
 
@@ -64,7 +64,7 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72', autoStart = t
         {phase === 'idle' ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <Radio className="size-8 text-white/40" strokeWidth={1.5} />
-            <p className="text-sm font-semibold text-white/85">Camera connected - ready to test the stream</p>
+            <p className="text-sm font-semibold text-white/85">Camera connected, ready to test the stream</p>
             <p className="text-justify text-xs text-white/50">Press Start below when you're ready to begin.</p>
           </div>
         ) : phase === 'error' ? (

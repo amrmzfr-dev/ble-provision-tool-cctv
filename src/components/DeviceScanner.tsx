@@ -16,34 +16,6 @@ import { cn } from '@/lib/utils'
 type Step = 'scan' | 'find' | 'wifi' | 'pairing' | 'backend' | 'stream'
 const STEPS: Step[] = ['scan', 'find', 'wifi', 'pairing', 'backend']
 
-// Short copy for the preview cards shown while swiping ahead of (or back
-// through) real progress - the same idea each screen's own header already
-// carries, just standalone here since a not-yet-reached step (e.g.
-// 'pairing' with no device found yet) can't safely mount its real
-// functional component at all.
-const STEP_INFO: Record<Exclude<Step, 'stream'>, { title: string; description: string }> = {
-  scan: {
-    title: "Scan the camera's serial",
-    description: 'Find the QR sticker on the camera, then scan it or type it in.',
-  },
-  find: {
-    title: 'Find it over Bluetooth',
-    description: "Your browser's own device picker, pre-filtered to just this camera's kind of device.",
-  },
-  wifi: {
-    title: 'WiFi for the camera',
-    description: "Enter the WiFi network's name and password so the camera can join it.",
-  },
-  pairing: {
-    title: 'Pairing',
-    description: 'Sends the WiFi details to the camera over Bluetooth and waits for it to acknowledge them.',
-  },
-  backend: {
-    title: 'Connecting to the server',
-    description: "Tells the backend WiFi is set, then waits for the camera to actually come online.",
-  },
-}
-
 function StepDots({ activeIndex }: { activeIndex: number }) {
   return (
     <div className="flex items-center gap-1">
@@ -78,11 +50,12 @@ export function DeviceScanner() {
   // Which step's content is actually being shown - independent of `step`
   // (real progress) so a swipe can browse ahead to preview a step that
   // hasn't been reached yet, or back to review one already passed, without
-  // touching any real BLE/network state. Only when this matches the real
-  // step does the actual functional screen mount; otherwise a lightweight,
-  // read-only preview card renders instead - swiping ahead of a live BLE
-  // handshake can't run it early, but showing what it is and why it isn't
-  // unlocked yet is exactly what was asked for.
+  // touching any real BLE/network state. This renders the SAME real screen
+  // component either way (so what a user sees while previewing is exactly
+  // what they'll actually get) - it's just wrapped non-interactively, and
+  // PairingScreen/BackendHandoffScreen additionally get previewOnly to skip
+  // the mount-time effect that would otherwise try a real BLE handshake or
+  // a real network poll before its step is actually reached for real.
   const [previewIndex, setPreviewIndex] = useState(realIndex)
 
   // Real progress always wins - the moment something actually happens
@@ -150,6 +123,70 @@ export function DeviceScanner() {
   // step needs no such reminder, there's nothing left to finish there.
   const previewIncomplete = !isViewingRealStep && previewIndex > realIndex
 
+  const renderStep = (s: Step) => {
+    switch (s) {
+      case 'scan':
+        return (
+          <ScanSerialScreen
+            onSerialConfirmed={(sVal) => {
+              setSerial(sVal)
+              setStep('find')
+            }}
+          />
+        )
+      case 'find':
+        return <FindDeviceScreen serial={serial} scanning={scanning} error={error} onScan={(mode) => scan(mode)} />
+      case 'wifi':
+        return (
+          <WifiCredentialsScreen
+            deviceName={device?.name ?? serial}
+            serialMatch={serialMatch}
+            initialError={wifiError}
+            onSubmit={(ssid, password) => {
+              setWifiSsid(ssid)
+              setWifiPassword(password)
+              setWifiError(null)
+              setStep('pairing')
+            }}
+          />
+        )
+      case 'pairing':
+        return (
+          <PairingScreen
+            device={device?.device}
+            serial={serial}
+            ssid={wifiSsid}
+            password={wifiPassword}
+            onBack={() => setStep('wifi')}
+            onSuccess={(result, notified) => {
+              setBackendNotified(notified)
+              if (result.joinResultCode === 0) {
+                setStep('backend')
+              } else {
+                setWifiError(result.joinResultText)
+                setStep('wifi')
+              }
+            }}
+            previewOnly={s !== step}
+          />
+        )
+      case 'backend':
+        return (
+          <BackendHandoffScreen
+            serial={serial}
+            alreadyNotified={backendNotified}
+            onDone={goHome}
+            onRetryWifi={() => setStep('wifi')}
+            onViewStream={() => setStep('stream')}
+            onCancel={goHome}
+            previewOnly={s !== step}
+          />
+        )
+      case 'stream':
+        return <StreamScreen serial={serial} onBack={() => setStep('backend')} />
+    }
+  }
+
   return (
     <div className="relative flex min-h-[560px] flex-1 flex-col gap-4">
       <div className="flex h-8 items-center justify-between">
@@ -157,7 +194,7 @@ export function DeviceScanner() {
           <Button variant="ghost" size="icon" onClick={goBack} aria-label="Back" className="-ml-2">
             <ChevronLeft />
           </Button>
-        ) : previewIndex > 0 ? (
+        ) : !isViewingRealStep && previewIndex > 0 ? (
           <Button
             variant="ghost"
             size="icon"
@@ -174,74 +211,13 @@ export function DeviceScanner() {
       </div>
 
       <div key={step} className="flex flex-1 touch-pan-y flex-col animate-in" {...swipeHandlers}>
-        {!isViewingRealStep ? (
-          <div className="flex flex-1 flex-col gap-5">
-            <div>
-              <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                Step {previewIndex + 1} of {STEPS.length}
-              </span>
-              <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
-                {STEP_INFO[previewedStep as Exclude<Step, 'stream'>].title}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {STEP_INFO[previewedStep as Exclude<Step, 'stream'>].description}
-              </p>
-            </div>
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-              <p>Just previewing what's ahead.</p>
-              <p className="text-xs">Swipe to keep browsing, or complete the steps in order to actually get here.</p>
-            </div>
-          </div>
-        ) : step === 'scan' ? (
-          <ScanSerialScreen
-            onSerialConfirmed={(s) => {
-              setSerial(s)
-              setStep('find')
-            }}
-          />
-        ) : step === 'find' ? (
-          <FindDeviceScreen serial={serial} scanning={scanning} error={error} onScan={(mode) => scan(mode)} />
-        ) : step === 'wifi' ? (
-          <WifiCredentialsScreen
-            deviceName={device?.name ?? serial}
-            serialMatch={serialMatch}
-            initialError={wifiError}
-            onSubmit={(ssid, password) => {
-              setWifiSsid(ssid)
-              setWifiPassword(password)
-              setWifiError(null)
-              setStep('pairing')
-            }}
-          />
-        ) : step === 'pairing' && device ? (
-          <PairingScreen
-            device={device.device}
-            serial={serial}
-            ssid={wifiSsid}
-            password={wifiPassword}
-            onBack={() => setStep('wifi')}
-            onSuccess={(result, notified) => {
-              setBackendNotified(notified)
-              if (result.joinResultCode === 0) {
-                setStep('backend')
-              } else {
-                setWifiError(result.joinResultText)
-                setStep('wifi')
-              }
-            }}
-          />
-        ) : step === 'backend' ? (
-          <BackendHandoffScreen
-            serial={serial}
-            alreadyNotified={backendNotified}
-            onDone={goHome}
-            onRetryWifi={() => setStep('wifi')}
-            onViewStream={() => setStep('stream')}
-            onCancel={goHome}
-          />
-        ) : step === 'stream' ? (
-          <StreamScreen serial={serial} onBack={() => setStep('backend')} />
-        ) : null}
+        {/* Previewing renders the exact same real screen, just inert - a
+            step that hasn't been reached yet (e.g. 'pairing' with no device
+            found) shows precisely what it will look like, it just can't be
+            interacted with until it's actually reached in order. */}
+        <div className={cn('flex flex-1 flex-col', !isViewingRealStep && 'pointer-events-none opacity-75')}>
+          {renderStep(previewedStep)}
+        </div>
       </div>
 
       {/* Absolutely positioned, no auto-dismiss timer needed - it's derived

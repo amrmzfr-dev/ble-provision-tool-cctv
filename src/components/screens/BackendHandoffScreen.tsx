@@ -19,12 +19,22 @@ interface BackendHandoffScreenProps {
   onViewStream: () => void
   /** Bail out while still submitting/waiting - the poll has no other exit besides connecting or a 6-minute timeout. */
   onCancel: () => void
+  /** True while just being previewed (swiped ahead of real progress) - shows the "waiting" layout frozen, without ever sending a real request. */
+  previewOnly?: boolean
 }
 
 type Phase = 'submitting' | 'waiting' | 'connected' | 'failed'
 
-export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryWifi, onViewStream, onCancel }: BackendHandoffScreenProps) {
-  const [phase, setPhase] = useState<Phase>(alreadyNotified ? 'waiting' : 'submitting')
+export function BackendHandoffScreen({
+  serial,
+  alreadyNotified,
+  onDone,
+  onRetryWifi,
+  onViewStream,
+  onCancel,
+  previewOnly,
+}: BackendHandoffScreenProps) {
+  const [phase, setPhase] = useState<Phase>(previewOnly ? 'waiting' : alreadyNotified ? 'waiting' : 'submitting')
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pollStartRef = useRef<number | null>(alreadyNotified ? Date.now() : null)
@@ -32,7 +42,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
   const [resetError, setResetError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (phase !== 'submitting') return
+    if (previewOnly || phase !== 'submitting') return
     let cancelled = false
 
     logEvent('tx', `POST /device/${serial}/provisioning/wifi-configured`)
@@ -57,7 +67,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
   }, [phase, serial])
 
   useEffect(() => {
-    if (phase !== 'waiting') return
+    if (previewOnly || phase !== 'waiting') return
     let cancelled = false
 
     const poll = async () => {
@@ -65,7 +75,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
         logEvent('tx', `GET /device/${serial}/status`)
         const result = await getDeviceStatus(serial)
         if (cancelled) return
-        logEvent('rx', `status=${result.status} - ${result.status_description}`)
+        logEvent('rx', `status=${result.status} (${result.status_description})`)
         setStatus(result)
 
         if (result.status === 'connected') {
@@ -156,7 +166,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
               You can also check the camera itself, and the LED means something different at each
               stage: while it's still trying to join the WiFi, it keeps blinking green fast and
               continuously, the same as pairing mode. Once it's actually connected, the LED holds
-              solid green instead - it'll still flick off and back on 1 to 3 times every few
+              solid green instead. It'll still flick off and back on 1 to 3 times every few
               minutes, but that short burst is normal and doesn't mean it dropped.
             </p>
           )}
@@ -181,13 +191,13 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
 
           {resetState === 'done' ? (
             <p className="rounded-xl bg-[#0c0c0c]/10 p-3 text-xs font-medium">
-              Factory reset sent - the camera should reboot into pairing mode shortly.
+              Factory reset sent. The camera should reboot into pairing mode shortly.
             </p>
           ) : resetState === 'confirming' ? (
             <div className="flex flex-col gap-2 rounded-xl bg-[#0c0c0c]/10 p-3">
               <span className="flex items-center gap-2 text-xs font-semibold uppercase">
                 <AlertTriangle className="size-4" />
-                Factory reset - wipes all config, irreversible
+                Factory reset wipes all config, irreversible
               </span>
               <div className="flex gap-2">
                 <Button
@@ -217,7 +227,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
             resetState === 'error' && (
               <p className="rounded-xl bg-[#0c0c0c]/10 p-3 text-xs font-medium">
                 Reset failed: {resetError}. This only works while the camera is still actively
-                connected - if it's already dropped, this won't succeed; use the physical reset
+                connected. If it's already dropped, this won't succeed; use the physical reset
                 instead.
               </p>
             )
