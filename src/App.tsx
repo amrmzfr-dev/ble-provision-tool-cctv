@@ -1,5 +1,6 @@
-import { Bluetooth, Camera as CameraIcon, LogOut, Moon, Sun } from 'lucide-react'
+import { AlertTriangle, Bluetooth, Moon, Sun } from 'lucide-react'
 import { useState, useSyncExternalStore } from 'react'
+import { BottomNav, type NavTab } from '@/components/BottomNav'
 import { DeviceScanner } from '@/components/DeviceScanner'
 import { LoginScreen } from '@/components/LoginScreen'
 import { LogConsole } from '@/components/LogConsole'
@@ -11,10 +12,17 @@ import { clearAuthToken, getAuthToken, subscribeAuthToken } from '@/lib/api/conf
 
 type View = { name: 'pairing' } | { name: 'my-cameras' } | { name: 'stream'; serial: string }
 
+function viewToTab(view: View): NavTab {
+  // The stream screen is only ever reached from My Cameras, so it stays
+  // grouped under that tab for highlighting purposes.
+  return view.name === 'pairing' ? 'pairing' : 'my-cameras'
+}
+
 export default function App() {
   const { theme, toggleTheme } = useTheme()
   const authToken = useSyncExternalStore(subscribeAuthToken, getAuthToken)
   const [view, setView] = useState<View>({ name: 'pairing' })
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-background text-foreground">
@@ -22,7 +30,7 @@ export default function App() {
         aria-hidden
         className="pointer-events-none absolute -top-32 left-1/2 h-80 w-full max-w-lg -translate-x-1/2 rounded-full bg-primary/25 blur-3xl"
       />
-      <div className="relative mx-auto flex max-w-md flex-col gap-6 px-5 py-10">
+      <div className={`relative mx-auto flex max-w-md flex-col gap-6 px-5 py-10 ${authToken ? 'pb-24' : ''}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="glow-primary flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-destructive text-primary-foreground">
@@ -37,39 +45,15 @@ export default function App() {
               </h1>
             </div>
           </div>
-          <div className="flex gap-2">
-            {authToken && (
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={() => setView(view.name === 'pairing' ? { name: 'my-cameras' } : { name: 'pairing' })}
-                aria-label={view.name === 'pairing' ? 'My cameras' : 'New pairing'}
-                className="border border-border"
-              >
-                {view.name === 'pairing' ? <CameraIcon /> : <Bluetooth />}
-              </Button>
-            )}
-            {authToken && (
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={clearAuthToken}
-                aria-label="Sign out"
-                className="border border-border"
-              >
-                <LogOut />
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={toggleTheme}
-              aria-label="Toggle theme"
-              className="border border-border"
-            >
-              {theme === 'dark' ? <Sun /> : <Moon />}
-            </Button>
-          </div>
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="border border-border"
+          >
+            {theme === 'dark' ? <Sun /> : <Moon />}
+          </Button>
         </div>
         {!authToken ? (
           <LoginScreen />
@@ -85,6 +69,41 @@ export default function App() {
         )}
       </div>
       <LogConsole />
+
+      {authToken && (
+        <BottomNav
+          active={viewToTab(view)}
+          onSelect={(tab) => setView({ name: tab })}
+          onLogoutClick={() => setConfirmingLogout(true)}
+        />
+      )}
+
+      {confirmingLogout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-5">
+          <div className="w-full max-w-xs rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase">
+              <AlertTriangle className="size-4 text-destructive" />
+              Sign out?
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">You'll need to log in again to keep testing.</p>
+            <div className="mt-4 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setConfirmingLogout(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => {
+                  setConfirmingLogout(false)
+                  clearAuthToken()
+                }}
+              >
+                Sign out
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
