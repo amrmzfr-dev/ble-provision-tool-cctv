@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { getDeviceStatus, postWifiConfigured } from '@/lib/api/client'
 import { ApiError, getClientKey, setClientKey } from '@/lib/api/config'
 import type { DeviceStatus } from '@/lib/api/types'
+import { logEvent } from '@/lib/debugLog'
 
 const POLL_INTERVAL_MS = 4000
 const POLL_TIMEOUT_MS = 6 * 60 * 1000 // slightly past the backend's own 5-minute window
@@ -28,15 +29,19 @@ export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHan
     if (phase !== 'submitting') return
     let cancelled = false
 
+    logEvent('tx', `POST /device/${serial}/provisioning/wifi-configured`)
     postWifiConfigured(serial)
-      .then(() => {
+      .then((res) => {
         if (cancelled) return
+        logEvent('success', `wifi-configured accepted: ${JSON.stringify(res)}`)
         pollStartRef.current = Date.now()
         setPhase('waiting')
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : String(err))
+        const message = err instanceof ApiError ? err.message : String(err)
+        logEvent('error', `wifi-configured failed: ${message}`)
+        setError(message)
         setPhase('failed')
       })
 
@@ -51,27 +56,34 @@ export function BackendHandoffScreen({ serial, onDone, onRetryWifi }: BackendHan
 
     const poll = async () => {
       try {
+        logEvent('tx', `GET /device/${serial}/status`)
         const result = await getDeviceStatus(serial)
         if (cancelled) return
+        logEvent('rx', `status=${result.status} — ${result.status_description}`)
         setStatus(result)
 
         if (result.status === 'connected') {
+          logEvent('success', 'Camera connected')
           setPhase('connected')
           return
         }
         if (['connection_timeout', 'login_failed', 'password_error', 'serial_mismatch'].includes(result.status)) {
+          logEvent('error', `Terminal status: ${result.status}`)
           setError(result.status_description)
           setPhase('failed')
           return
         }
       } catch (err) {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : String(err))
+        const message = err instanceof ApiError ? err.message : String(err)
+        logEvent('error', `Status poll failed: ${message}`)
+        setError(message)
         setPhase('failed')
         return
       }
 
       if (Date.now() - (pollStartRef.current ?? Date.now()) > POLL_TIMEOUT_MS) {
+        logEvent('error', `Gave up after ${POLL_TIMEOUT_MS}ms of polling`)
         setError("The camera hasn't come online within the expected window.")
         setPhase('failed')
         return

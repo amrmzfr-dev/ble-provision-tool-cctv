@@ -1,5 +1,6 @@
 import { Bluetooth, Moon, Sun } from 'lucide-react'
 import { DeviceScanner } from '@/components/DeviceScanner'
+import { LogConsole } from '@/components/LogConsole'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -39,6 +40,7 @@ export default function App() {
         </div>
         <DeviceScanner />
       </div>
+      <LogConsole />
     </div>
   )
 }

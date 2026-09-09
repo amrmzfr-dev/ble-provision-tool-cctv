@@ -1,3 +1,4 @@
+import { bytesToHex, logEvent } from '@/lib/debugLog'
 import { GATT_NOTIFY_CHARACTERISTIC_UUID, GATT_SERVICE_UUID, GATT_WRITE_CHARACTERISTIC_UUID } from './constants'
 import { fragmentFrame, FrameAssembler, type AssembledFrame } from './framing'
 
@@ -29,6 +30,7 @@ export class BleTransport {
 
     this.device.addEventListener('gattserverdisconnected', this.handleDisconnect)
 
+    logEvent('info', 'Connecting to GATT server…')
     const server = await this.device.gatt.connect()
     const service = await server.getPrimaryService(GATT_SERVICE_UUID)
     this.writeChar = await service.getCharacteristic(GATT_WRITE_CHARACTERISTIC_UUID)
@@ -39,17 +41,20 @@ export class BleTransport {
     // handshake's first write.
     await this.notifyChar.startNotifications()
     this.notifyChar.addEventListener('characteristicvaluechanged', this.handleNotification)
+    logEvent('success', 'GATT connected, notifications enabled on fff2')
 
     this.server = server
   }
 
   disconnect(): void {
+    logEvent('info', 'Disconnecting BLE transport')
     this.notifyChar?.removeEventListener('characteristicvaluechanged', this.handleNotification)
     this.device.removeEventListener('gattserverdisconnected', this.handleDisconnect)
     this.server?.disconnect()
   }
 
   private handleDisconnect = () => {
+    logEvent('error', 'Camera disconnected over Bluetooth' + (this.pending ? ' (mid-request)' : ''))
     this.pending?.reject(new Error('The camera disconnected over Bluetooth mid-request'))
     this.pending = null
   }
@@ -60,17 +65,28 @@ export class BleTransport {
     if (!value) return
 
     const fragment = new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+    logEvent('rx', `fragment (${fragment.length}B) flag=0x${fragment[0]?.toString(16)}: ${bytesToHex(fragment)}`)
+
     const assembled = this.assembler.push(fragment)
-    if (assembled && this.pending) {
-      const { resolve } = this.pending
-      this.pending = null
-      resolve(assembled)
+    if (assembled) {
+      logEvent(
+        'rx',
+        `frame complete (${assembled.raw.length}B, ${assembled.encrypted ? 'encrypted' : 'plaintext'}): ${bytesToHex(assembled.raw)}`,
+      )
+      if (this.pending) {
+        const { resolve } = this.pending
+        this.pending = null
+        resolve(assembled)
+      } else {
+        logEvent('info', 'Frame arrived with nothing waiting for it — dropped')
+      }
     }
   }
 
   private async writeFragments(fragments: Uint8Array[]): Promise<void> {
     if (!this.writeChar) throw new Error('Not connected')
     for (const fragment of fragments) {
+      logEvent('tx', `fragment (${fragment.length}B) flag=0x${fragment[0]?.toString(16)}: ${bytesToHex(fragment)}`)
       // Confirmed against real hardware: fff1 only accepts write-without-
       // response (write-with-response threw "GATT operation not permitted").
       // Makes sense in hindsight — the protocol already has its own
@@ -97,6 +113,7 @@ export class BleTransport {
       setTimeout(() => {
         if (this.pending) {
           this.pending = null
+          logEvent('error', `Timeout after ${timeoutMs}ms: ${onTimeoutMessage}`)
           reject(new Error(onTimeoutMessage))
         }
       }, timeoutMs)
@@ -112,6 +129,7 @@ export class BleTransport {
 
   /** For responses that arrive unsolicited (the WiFi join result), not as a direct reply to a write. */
   async waitForNotification(timeoutMs: number): Promise<AssembledFrame> {
-    return this.waitForFrame(timeoutMs, "Timed out waiting for the camera to report its WiFi join result")
+    logEvent('info', `Waiting up to ${timeoutMs}ms for an unsolicited notification…`)
+    return this.waitForFrame(timeoutMs, 'Timed out waiting for the camera to report its WiFi join result')
   }
 }

@@ -1,3 +1,4 @@
+import { bytesToHex, logEvent } from '@/lib/debugLog'
 import { CMD, WIFI_JOIN_RESULT_TEXT } from './constants'
 import { aesCbcDecrypt, aesCbcEncrypt, deriveSessionKey, generateRsaKeypair, type SessionKey } from './crypto'
 import { buildAppFrame, parseAppFrame } from './framing'
@@ -38,6 +39,11 @@ interface CommandPair {
   rx: number
 }
 
+function stage(onStage: (stage: ProvisionStage) => void, s: ProvisionStage): void {
+  logEvent('info', `— ${PROVISION_STAGE_LABEL[s]} —`)
+  onStage(s)
+}
+
 export async function runProvisioning(
   device: BluetoothDevice,
   ssid: string,
@@ -47,52 +53,62 @@ export async function runProvisioning(
   const transport = new BleTransport(device)
 
   try {
-    onStage('connecting')
+    stage(onStage, 'connecting')
     await transport.connect()
 
-    onStage('exchanging-key')
+    stage(onStage, 'exchanging-key')
     const keypair = generateRsaKeypair()
+    logEvent('info', `Sending our RSA public key (${keypair.modulus.length}B modulus)`)
     const pubKeyResponse = await transport.sendRaw(buildAppFrame(CMD.PUBLIC_KEY.tx, keypair.modulus), false)
     const pubKeyParsed = parseAppFrame(pubKeyResponse.raw)
     expectCmd(CMD.PUBLIC_KEY, pubKeyParsed.cmd)
     const secret = keypair.decrypt(pubKeyParsed.data)
+    logEvent('info', `Decrypted secret (${secret.length}B): ${bytesToHex(secret)}`)
     const session = deriveSessionKey(secret)
+    logEvent('success', `Session key derived (key ${session.key.length}B, iv ${session.iv.length}B)`)
 
-    const sendEncrypted = (cmd: CommandPair, payload: Uint8Array) =>
-      sendEncryptedCommand(transport, session, cmd, payload)
+    const sendEncrypted = (label: string, cmd: CommandPair, payload: Uint8Array) =>
+      sendEncryptedCommand(transport, session, label, cmd, payload)
 
-    onStage('reading-serial')
-    const snData = await sendEncrypted(CMD.GET_SN, new Uint8Array(0))
+    stage(onStage, 'reading-serial')
+    const snData = await sendEncrypted('GET_SN', CMD.GET_SN, new Uint8Array(0))
     const serialNumber = parseSnOrScResponse(snData)
+    logEvent('success', `Serial number: ${serialNumber} (raw: ${bytesToHex(snData)})`)
 
-    onStage('reading-security-code')
-    const scData = await sendEncrypted(CMD.GET_SECURITY_CODE, new Uint8Array(0))
+    stage(onStage, 'reading-security-code')
+    const scData = await sendEncrypted('GET_SECURITY_CODE', CMD.GET_SECURITY_CODE, new Uint8Array(0))
     const securityCode = parseSnOrScResponse(scData)
+    logEvent('success', `Security code: ${securityCode} (raw: ${bytesToHex(scData)})`)
 
-    onStage('syncing-time')
-    await sendEncrypted(CMD.SET_TIME, buildTimePayload(new Date()))
+    stage(onStage, 'syncing-time')
+    await sendEncrypted('SET_TIME', CMD.SET_TIME, buildTimePayload(new Date()))
 
-    onStage('sending-wifi')
-    await sendEncrypted(CMD.SET_WIFI, buildWifiPayload(ssid, password))
+    stage(onStage, 'sending-wifi')
+    logEvent('info', `SSID "${ssid}", password length ${password.length}`)
+    await sendEncrypted('SET_WIFI', CMD.SET_WIFI, buildWifiPayload(ssid, password))
 
-    onStage('waiting-for-join')
+    stage(onStage, 'waiting-for-join')
     const joinFrame = await transport.waitForNotification(30_000)
     const decryptedJoin = await aesCbcDecrypt(joinFrame.raw, session)
     const joinParsed = parseAppFrame(decryptedJoin)
     if (joinParsed.cmd !== CMD.WIFI_JOIN_RESULT.rx) {
+      logEvent(
+        'error',
+        `Expected join-result cmd 0x${CMD.WIFI_JOIN_RESULT.rx.toString(16)}, got 0x${joinParsed.cmd.toString(16)} instead: ${bytesToHex(joinParsed.data)}`,
+      )
       throw new Error(
         `Expected the WiFi join result (0x${CMD.WIFI_JOIN_RESULT.rx.toString(16)}), got 0x${joinParsed.cmd.toString(16)}`,
       )
     }
     const joinResultCode = joinParsed.data[0]
+    const joinResultText = WIFI_JOIN_RESULT_TEXT[joinResultCode] ?? `Unrecognized result code ${joinResultCode}`
+    logEvent(joinResultCode === 0 ? 'success' : 'error', `Join result: ${joinResultCode} (${joinResultText})`)
 
-    onStage('done')
-    return {
-      serialNumber,
-      securityCode,
-      joinResultCode,
-      joinResultText: WIFI_JOIN_RESULT_TEXT[joinResultCode] ?? `Unrecognized result code ${joinResultCode}`,
-    }
+    stage(onStage, 'done')
+    return { serialNumber, securityCode, joinResultCode, joinResultText }
+  } catch (err) {
+    logEvent('error', `Provisioning failed: ${err instanceof Error ? err.message : String(err)}`)
+    throw err
   } finally {
     transport.disconnect()
   }
@@ -101,15 +117,18 @@ export async function runProvisioning(
 async function sendEncryptedCommand(
   transport: BleTransport,
   session: SessionKey,
+  label: string,
   cmd: CommandPair,
   payload: Uint8Array,
 ): Promise<Uint8Array> {
   const frame = buildAppFrame(cmd.tx, payload)
   const encryptedFrame = await aesCbcEncrypt(frame, session)
+  logEvent('tx', `${label} (0x${cmd.tx.toString(16)}), ${payload.length}B payload`)
   const response = await transport.sendRaw(encryptedFrame, true)
   const decrypted = await aesCbcDecrypt(response.raw, session)
   const parsed = parseAppFrame(decrypted)
   expectCmd(cmd, parsed.cmd)
+  logEvent('rx', `${label} ack (0x${parsed.cmd.toString(16)}): ${bytesToHex(parsed.data)}`)
   return parsed.data
 }
 
