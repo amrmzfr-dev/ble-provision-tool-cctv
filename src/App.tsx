@@ -1,4 +1,4 @@
-import { AlertTriangle, Bluetooth, Moon, Sun } from 'lucide-react'
+import { AlertTriangle, Bluetooth } from 'lucide-react'
 import { useState, useSyncExternalStore } from 'react'
 import { BottomNav, type NavTab } from '@/components/BottomNav'
 import { DeviceScanner } from '@/components/DeviceScanner'
@@ -45,15 +45,6 @@ export default function App() {
               </h1>
             </div>
           </div>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="border border-border"
-          >
-            {theme === 'dark' ? <Sun /> : <Moon />}
-          </Button>
         </div>
         {!authToken ? (
           <LoginScreen />
@@ -74,6 +65,8 @@ export default function App() {
         <BottomNav
           active={viewToTab(view)}
           onSelect={(tab) => setView({ name: tab })}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onLogoutClick={() => setConfirmingLogout(true)}
         />
       )}

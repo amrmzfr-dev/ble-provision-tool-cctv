@@ -43,7 +43,7 @@ export function LogConsole() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open debug log"
-        className="fixed right-4 bottom-20 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-lg"
+        className="fixed top-4 right-4 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-lg"
       >
         <ScrollText className="size-4" />
         {entries.length > 0 && (
