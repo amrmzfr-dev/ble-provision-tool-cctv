@@ -26,10 +26,6 @@ export default function App() {
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-background text-foreground">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-32 left-1/2 h-80 w-full max-w-lg -translate-x-1/2 rounded-full bg-primary/25 blur-3xl"
-      />
       <div className={`relative mx-auto flex max-w-md flex-col gap-6 px-5 pt-4 pb-10 ${authToken ? 'pb-24' : ''}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
