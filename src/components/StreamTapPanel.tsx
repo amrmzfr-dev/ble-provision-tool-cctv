@@ -62,10 +62,21 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72', autoStart = t
         )}
       >
         {phase === 'idle' ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <Radio className="size-8 text-white/40" strokeWidth={1.5} />
-            <p className="text-sm font-semibold text-white/85">Camera connected, ready to test the stream</p>
-            <p className="text-justify text-xs text-white/50">Press Start below when you're ready to begin.</p>
+          // Not a real status claim (this doesn't check whether the camera
+          // is actually connected - that's what the badge in the header is
+          // for) - just a static mock-up of what the real log looks like,
+          // clearly labeled as an example so it can't be mistaken for one.
+          <div className="flex h-full flex-col gap-2">
+            <p className="text-[10px] tracking-wide text-white/40 uppercase">Example of a streaming log</p>
+            <div className="flex flex-col gap-0.5 opacity-60">
+              <p>01:43:12.045  connected, reading live stream body</p>
+              <p>01:43:12.098  chunk 1  +7.3 KB  (total 7.3 KB)</p>
+              <p>01:43:12.140  chunk 2  +6.9 KB  (total 14.2 KB)</p>
+              <p>01:43:12.183  chunk 3  +7.1 KB  (total 21.3 KB)</p>
+            </div>
+            <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
+              <p className="text-sm font-semibold text-white/85">Press Start to begin for real</p>
+            </div>
           </div>
         ) : phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
