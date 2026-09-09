@@ -78,8 +78,8 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
       </div>
 
       <p className="shrink-0 text-justify font-mono text-xs text-muted-foreground">
-        No video preview: this camera streams H.265, which browsers can't decode. This confirms
-        the full path — browser → backend → the camera's live session — is actually working.
+        This app can't play the video itself. But if logs are coming in below, the camera really
+        is streaming live.
       </p>
 
       {/* One button, not two side by side with one always invisible — it
