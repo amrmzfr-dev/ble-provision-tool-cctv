@@ -118,7 +118,7 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
       ) : cameras && cameras.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
           <p>No cameras yet.</p>
-          <p className="max-w-[28ch] text-xs">
+          <p className="text-xs">
             Cameras show up here automatically once a pairing finishes and comes online.
           </p>
         </div>

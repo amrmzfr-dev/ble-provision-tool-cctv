@@ -49,7 +49,7 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
         <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
           <Bluetooth className="size-8" />
         </div>
-        <p className="max-w-[26ch] text-justify text-sm text-muted-foreground">
+        <p className="text-justify text-sm text-muted-foreground">
           Your browser will show its own picker, pre-filtered to just this camera's kind of
           device. Pick it from that list, then pairing continues automatically.
         </p>

@@ -106,7 +106,7 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
           <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
             <QrCode className="size-8" />
           </div>
-          <p className="max-w-[26ch] text-justify text-sm text-muted-foreground">
+          <p className="text-justify text-sm text-muted-foreground">
             Ready when you are. This opens your camera to scan the QR code.
           </p>
           <Button size="lg" className="w-full" onClick={() => setMode('camera')}>
