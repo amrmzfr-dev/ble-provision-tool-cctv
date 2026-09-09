@@ -1,19 +1,28 @@
-# Camera BLE Provisioning Tool
+# Perodua Charger CCTV — BLE Pairing Tool
 
-Web app to pair a Dahua CCTV camera over Bluetooth (BLE) and send it WiFi credentials, without
-needing the native Android app or any app store publishing.
+Web app to pair **the Perodua EV charger's CCTV camera** (Dahua hardware) over Bluetooth (BLE) and
+send it WiFi credentials, without needing the native Android app or any app store publishing. This
+is scoped to that one specific camera/product, not a general BLE-device tool — the whole point is
+replacing the one native Android flow this product already used.
 
 Full plan, recovered protocol, and phase breakdown:
 `C:\Users\ASUS\.claude\plans\vectorized-rolling-cascade.md`
 
+The camera's serial number is **required**, not optional — the backend API identifies devices by
+serial (`/api/device/<serial>/...`), so the app requires scanning the QR sticker on the camera (or
+typing the serial in) as step 1, before it will search for the device over Bluetooth at all.
+
 ## Status
 
-- [x] Phase 1 — scaffold + discovery (`DeviceScanner`, three scan-filter modes, QR-scan the
-      camera's serial to confirm you paired with the right one once found)
+- [x] Phase 1 — scaffold + discovery: scan the camera's serial QR code (required), then find it
+      over Bluetooth via one of three scan-filter modes, with a match/mismatch check against the
+      scanned serial once found
 - [ ] Phase 2 — GATT transport + frame fragmentation
 - [ ] Phase 3 — RSA/AES handshake, read serial number + security code
 - [ ] Phase 4 — send WiFi credentials, read join result
-- [ ] Phase 5 — call the backend provisioning API, poll status
+- [ ] Phase 5 — call the backend provisioning API, poll status (note: `cctv-api-prod/docs/SDK_GUIDE_DOCUMENTATION.md`
+      documents the camera's default login as `cctv_admin` / `cctv@2025` — check whether Phase 5
+      needs to pass these to `register_credentials` or whether the backend already assumes them)
 
 ## Running it
 
