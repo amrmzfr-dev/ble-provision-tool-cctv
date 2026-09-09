@@ -32,6 +32,12 @@ typing the serial in) as step 1, before it will search for the device over Bluet
 - [x] Phase 5 — call the backend provisioning API, poll status (`BackendHandoffScreen.tsx`,
       `PairingScreen.tsx`). See "wifi-configured timing" below — this used to be called after the
       BLE join result, which turned out to trigger a real backend bug.
+- [x] Resume after closing the tab (`src/lib/sessionState.ts`) — once the flow is past Bluetooth
+      (i.e. on the "connecting to the server" or stream screen, where everything left runs off the
+      backend API, not a GATT handle that can't survive a reload anyway), the serial + step are kept
+      in `localStorage`. Closing the app right after WiFi creds are sent — a real report from
+      testing — used to dump you back at the QR scan with no way back to that camera's status;
+      reopening now resumes straight into `BackendHandoffScreen`/`StreamScreen` for that serial.
 - [x] Factory reset from the "Camera online" screen (`adminResetDevice` in `src/lib/api/client.ts`,
       wired into `BackendHandoffScreen.tsx`) — needed so a unit can go from "just tested" to
       "clean for redeployment" without physical access every time. **Only works while the camera
@@ -39,9 +45,35 @@ typing the serial in) as step 1, before it will search for the device over Bluet
       session for that device, not a fresh connection made on demand. If the camera's already
       dropped (or its registration got poisoned by the wifi-configured bug below), this fails with
       `device_info_incomplete`/`device_not_connected` and the physical reset is the only option.
-- [ ] Phase 6 (not in the original plan, added per a later ask) — bind a user to the device
-      (`register_credentials`) and actually play the live stream (needs a FLV-capable player like
-      mpegts.js — browsers can't play raw FLV natively)
+- [x] Phase 6 (not in the original plan, added per a later ask) — play the live stream after
+      pairing (`StreamScreen.tsx`, via `mpegts.js` — browsers can't play raw FLV natively). Modeled
+      directly on `AndroidOpenDemo`'s `DeviceDetailActivity` → `AdminStreamActivity`: never cache or
+      reconstruct a stream UUID — call `GET /api/admin/device/<serial>` fresh right before opening
+      the stream and use whatever `admin_stream_url` comes back at that moment, same as the demo
+      app's `openCameraStream()` does with `mStreamUrlText`. User-binding (`register_credentials`,
+      stream tokens) is the production client app's job, not this admin-key-driven testing tool —
+      left unwired on purpose.
+
+### Streaming crash chased down — was stale test state, not a code bug
+
+Investigated a real report of "camera confirmed `connected` in the database, but
+`/api/admin/stream/<uuid>` still 500s with `'NoneType' object has no attribute 'encode'`." Traced
+the backend live (`api_server_listen_mode.py`): that endpoint keys everything off
+`stream_manager.registered_devices`/`loginIDs`, both in-memory, keyed by serial, populated by the
+same single long-running process (confirmed via `systemctl show` — one PID, not multiple gunicorn
+workers, so it isn't a split-memory-across-processes issue). The UUID itself
+(`get_admin_stream_uuid`) is a stable random `uuid4()` per serial, generated once and reused — not
+snapshotted state, so an old UUID for the same serial doesn't go stale on its own.
+
+Confirmed directly against the live camera (`BL08809RAGF5610`): a fresh `GET
+/api/admin/device/<serial>` call returned `connected: true` and a working `admin_stream_url`, and
+curling that URL immediately returned `200` with real FLV bytes. The endpoint and the camera were
+both fine — the difference was **when** the UUID/URL was obtained relative to when it was used. The
+Android reference app never separates those two steps: it re-fetches `admin_stream_url` from
+`getDeviceInfo()` immediately before every `openCameraStream()` call. `StreamScreen.tsx` now does
+the same — poll `/admin/device/<serial>` until `connected`, then re-fetch it *again* right before
+constructing the player URL, rather than reusing whatever was seen a poll cycle (or a whole prior
+test session) earlier.
 
 **First real-hardware result:** connects over Bluetooth fine, but the first write (sending the RSA
 public key) failed with `GATT operation not permitted`. Fixed — `fff1` only accepts

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, KeyRound, Loader2, RotateCcw, Trash2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, KeyRound, Loader2, RotateCcw, Trash2, Video, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,11 +16,12 @@ interface BackendHandoffScreenProps {
   alreadyNotified: boolean
   onDone: () => void
   onRetryWifi: () => void
+  onViewStream: () => void
 }
 
 type Phase = 'need-key' | 'submitting' | 'waiting' | 'connected' | 'failed'
 
-export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryWifi }: BackendHandoffScreenProps) {
+export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryWifi, onViewStream }: BackendHandoffScreenProps) {
   const [phase, setPhase] = useState<Phase>(() => {
     if (alreadyNotified) return 'waiting'
     return getAdminKey() ? 'submitting' : 'need-key'
@@ -240,24 +241,36 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
 
           <div className="flex-1" />
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             {resetState === 'idle' && (
               <Button
                 variant="outline"
-                className="flex-1 border-current/30 bg-transparent"
-                onClick={() => setResetState('confirming')}
+                className="border-current/30 bg-transparent"
+                onClick={onViewStream}
               >
-                <Trash2 />
-                Reset for redeployment
+                <Video />
+                View live stream
               </Button>
             )}
-            <Button
-              variant="outline"
-              onClick={onDone}
-              className={resetState === 'idle' ? 'border-current/30 bg-transparent' : 'flex-1 border-current/30 bg-transparent'}
-            >
-              Done
-            </Button>
+            <div className="flex gap-2">
+              {resetState === 'idle' && (
+                <Button
+                  variant="outline"
+                  className="flex-1 border-current/30 bg-transparent"
+                  onClick={() => setResetState('confirming')}
+                >
+                  <Trash2 />
+                  Reset for redeployment
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={onDone}
+                className={resetState === 'idle' ? 'border-current/30 bg-transparent' : 'flex-1 border-current/30 bg-transparent'}
+              >
+                Done
+              </Button>
+            </div>
           </div>
         </div>
       )}
