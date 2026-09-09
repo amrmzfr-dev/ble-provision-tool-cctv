@@ -8,6 +8,10 @@ replacing the one native Android flow this product already used.
 Full plan, recovered protocol, and phase breakdown:
 `C:\Users\ASUS\.claude\plans\vectorized-rolling-cascade.md`
 
+Full backend API surface (all endpoints, not just the two this app calls): `API_REFERENCE.md`.
+Typed client for all of it lives in `src/lib/api/` — `getDeviceStatus` and `postWifiConfigured`
+are the only two actually wired into the app so far (Phase 5); everything else is there for later.
+
 The camera's serial number is **required**, not optional — the backend API identifies devices by
 serial (`/api/device/<serial>/...`), so the app requires scanning the QR sticker on the camera (or
 typing the serial in) as step 1, before it will search for the device over Bluetooth at all.
