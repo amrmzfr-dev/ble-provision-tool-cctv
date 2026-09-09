@@ -1,11 +1,31 @@
 import { Bluetooth, Moon, Sun } from 'lucide-react'
+import { useEffect } from 'react'
 import { DeviceScanner } from '@/components/DeviceScanner'
 import { LogConsole } from '@/components/LogConsole'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
+import { setAdminKey } from '@/lib/api/config'
+
+// Lets a bookmarked/shared link carry the admin key so it only needs
+// entering once per device instead of every time the prompt appears — the
+// key itself never lives in this file or the built bundle, only the logic
+// to pick it up from the URL and immediately scrub it from the address bar.
+function useAdminKeyFromUrl(): void {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const key = params.get('adminKey')
+    if (!key) return
+
+    setAdminKey(key)
+    params.delete('adminKey')
+    const rest = params.toString()
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''))
+  }, [])
+}
 
 export default function App() {
   const { theme, toggleTheme } = useTheme()
+  useAdminKeyFromUrl()
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-background text-foreground">
