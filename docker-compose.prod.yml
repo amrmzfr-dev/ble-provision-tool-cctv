@@ -6,7 +6,7 @@ services:
     ports:
       # Host port 3010 must not collide with anything already running on this
       # VPS (e.g. ev-frontend-prod on 3000, ev-backend-prod on 8080). Check
-      # with `docker ps` / `ss -tlnp` before first deploy and change if needed —
+      # with `docker ps` / `ss -tlnp` before first deploy and change if needed -
       # update the matching host nginx `proxy_pass` line to match.
       - "3010:80"
     depends_on:
@@ -15,7 +15,7 @@ services:
       - ble-provision-network
 
   # Mini backend: holds the real camera backend's X-Admin-Key server-side (the
-  # browser never sees it — this replaced the old AdminKeyGate/localStorage
+  # browser never sees it - this replaced the old AdminKeyGate/localStorage
   # key approach entirely), gates the whole app behind a real login, and
   # keeps a personal "My Cameras" revisit list. nginx.conf's /api/* proxy
   # points here now instead of straight to cctv.czeros.tech; this service

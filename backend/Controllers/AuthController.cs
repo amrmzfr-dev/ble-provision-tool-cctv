@@ -34,7 +34,7 @@ public class AuthController(AppDbContext db, JwtService jwtService) : Controller
         return Ok(new { username = User.Identity?.Name });
     }
 
-    /// <summary>Any logged-in tester can create another tester's account — no separate admin role, this is a small internal tool.</summary>
+    /// <summary>Any logged-in tester can create another tester's account - no separate admin role, this is a small internal tool.</summary>
     [HttpPost("users")]
     public async Task<IActionResult> CreateUser(CreateUserRequest request)
     {

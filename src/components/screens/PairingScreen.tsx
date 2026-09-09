@@ -26,7 +26,7 @@ interface PairingScreenProps {
   serial: string
   ssid: string
   password: string
-  /** backendNotified: whether wifi-configured was already sent to the backend during pairing — lets the next screen skip sending it again. */
+  /** backendNotified: whether wifi-configured was already sent to the backend during pairing - lets the next screen skip sending it again. */
   onSuccess: (result: ProvisionResult, backendNotified: boolean) => void
   onBack: () => void
 }
@@ -43,8 +43,8 @@ export function PairingScreen({ device, serial, ssid, password, onSuccess, onBac
     setStage('connecting')
     backendNotifiedRef.current = false
 
-    // Deliberately fired here — right after the camera acks the WiFi
-    // credentials, not after waiting for the join result — see the long
+    // Deliberately fired here - right after the camera acks the WiFi
+    // credentials, not after waiting for the join result - see the long
     // comment on runProvisioning's onWifiSent param for why the timing
     // matters. Never blocks/aborts the BLE flow if it fails.
     const notifyBackend = () => {
@@ -91,7 +91,7 @@ export function PairingScreen({ device, serial, ssid, password, onSuccess, onBac
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Pairing</h2>
         <p className="mt-1 text-justify text-sm text-muted-foreground">
-          Keep this tab open and the camera nearby — this only takes a few seconds.
+          Keep this tab open and the camera nearby - this only takes a few seconds.
         </p>
       </div>
 

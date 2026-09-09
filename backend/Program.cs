@@ -42,7 +42,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // Everything requires a logged-in tester by default; only [AllowAnonymous]
 // endpoints (login) opt out. Matches "login gate for this app" from how
-// this backend was scoped — nothing here should be reachable without it.
+// this backend was scoped - nothing here should be reachable without it.
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
@@ -58,7 +58,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 
     // Seed one account from env so there's always a way in on a fresh
-    // deploy — SEED_ADMIN_USERNAME / SEED_ADMIN_PASSWORD. Every other
+    // deploy - SEED_ADMIN_USERNAME / SEED_ADMIN_PASSWORD. Every other
     // account is created via POST /api/auth/users by someone already
     // logged in.
     var seedUsername = app.Configuration["Seed:AdminUsername"];

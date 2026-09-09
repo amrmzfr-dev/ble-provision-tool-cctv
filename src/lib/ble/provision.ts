@@ -40,7 +40,7 @@ interface CommandPair {
 }
 
 function stage(onStage: (stage: ProvisionStage) => void, s: ProvisionStage): void {
-  logEvent('info', `— ${PROVISION_STAGE_LABEL[s]} —`)
+  logEvent('info', `- ${PROVISION_STAGE_LABEL[s]} -`)
   onStage(s)
 }
 
@@ -51,17 +51,17 @@ export async function runProvisioning(
   onStage: (stage: ProvisionStage) => void,
   /**
    * Fired right after the camera acks the WiFi credentials (05 81), before
-   * waiting for the join result — deliberately NOT after join success.
+   * waiting for the join result - deliberately NOT after join success.
    * Calling the backend's wifi-configured notification this early, rather
    * than after confirming the join over BLE, sidesteps a real backend race:
    * that endpoint writes ip=None/port=None for this device on every call,
    * and the write only corrupts anything if the camera has *already*
    * connected with real values by the time it lands. Notifying immediately
    * (matching what the original app almost certainly does) keeps the
-   * harmless ordering — null-write first, camera's real registration
-   * overwrites it after — instead of reversing it. See README.md's
+   * harmless ordering - null-write first, camera's real registration
+   * overwrites it after - instead of reversing it. See README.md's
    * "wifi-configured timing" section for the full incident writeup. Errors
-   * here are logged, never thrown — a failed notification must not abort an
+   * here are logged, never thrown - a failed notification must not abort an
    * otherwise-successful BLE handshake.
    */
   onWifiSent: () => void,

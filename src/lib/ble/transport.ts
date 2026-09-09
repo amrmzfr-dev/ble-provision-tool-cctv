@@ -7,7 +7,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Thin GATT wrapper. Deliberately protocol-ignorant — it just moves bytes
+ * Thin GATT wrapper. Deliberately protocol-ignorant - it just moves bytes
  * over fff1 (write) and fff2 (notify), fragmenting/reassembling per the
  * wire format, and hands complete frames back to whoever's waiting.
  * Encryption, command codes, and response validation all live in
@@ -37,7 +37,7 @@ export class BleTransport {
     this.notifyChar = await service.getCharacteristic(GATT_NOTIFY_CHARACTERISTIC_UUID)
 
     // startNotifications() resolving already confirms the CCCD (0x2902)
-    // descriptor write completed — no separate wait needed before the
+    // descriptor write completed - no separate wait needed before the
     // handshake's first write.
     await this.notifyChar.startNotifications()
     this.notifyChar.addEventListener('characteristicvaluechanged', this.handleNotification)
@@ -78,7 +78,7 @@ export class BleTransport {
         this.pending = null
         resolve(assembled)
       } else {
-        logEvent('info', 'Frame arrived with nothing waiting for it — dropped')
+        logEvent('info', 'Frame arrived with nothing waiting for it - dropped')
       }
     }
   }
@@ -89,7 +89,7 @@ export class BleTransport {
       logEvent('tx', `fragment (${fragment.length}B) flag=0x${fragment[0]?.toString(16)}: ${bytesToHex(fragment)}`)
       // Confirmed against real hardware: fff1 only accepts write-without-
       // response (write-with-response threw "GATT operation not permitted").
-      // Makes sense in hindsight — the protocol already has its own
+      // Makes sense in hindsight - the protocol already has its own
       // application-level acks (00 8C, 01 8E, ...), so it doesn't need the
       // ATT layer's too. writeValueWithoutResponse()'s promise resolves once
       // the write is locally queued, not once the peripheral's received it,
@@ -98,7 +98,7 @@ export class BleTransport {
       // message (the 97-byte WiFi payload is 7 fragments back to back).
       //
       // TS 5.7+'s stricter typed-array generics mean a plain Uint8Array no
-      // longer satisfies BufferSource without help — safe here since this
+      // longer satisfies BufferSource without help - safe here since this
       // is always backed by a real, non-shared ArrayBuffer at runtime.
       await this.writeChar.writeValueWithoutResponse(fragment as BufferSource)
       await sleep(15)
@@ -120,7 +120,7 @@ export class BleTransport {
     })
   }
 
-  /** Writes `frame` and waits for the next complete response frame — the protocol is strictly one request in flight at a time. */
+  /** Writes `frame` and waits for the next complete response frame - the protocol is strictly one request in flight at a time. */
   async sendRaw(frame: Uint8Array, encrypted: boolean, timeoutMs = 10_000): Promise<AssembledFrame> {
     const wait = this.waitForFrame(timeoutMs, 'Timed out waiting for a response from the camera')
     await this.writeFragments(fragmentFrame(frame, encrypted))

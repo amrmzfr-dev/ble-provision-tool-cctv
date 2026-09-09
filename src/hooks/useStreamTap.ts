@@ -6,7 +6,7 @@ import { logEvent } from '@/lib/debugLog'
 const POLL_INTERVAL_MS = 3000
 const MAX_LOG_LINES = 300
 
-// No separate 'streaming' phase — see the note above the effect that reads
+// No separate 'streaming' phase - see the note above the effect that reads
 // the stream body for why setting one from inside that effect was itself the
 // bug that caused "0 chunks, 0.0 KB" forever. 'stopped' is a deliberate user
 // action (the Stop button), distinct from 'error'.
@@ -27,7 +27,7 @@ function formatClock(date: Date): string {
 }
 
 /**
- * Not a video player — the camera streams HEVC (H.265) on both main and sub
+ * Not a video player - the camera streams HEVC (H.265) on both main and sub
  * streams (confirmed with ffprobe against a captured admin stream), and
  * browsers' Media Source Extensions essentially never support HEVC. This
  * proves bytes are actually flowing end to end instead: browser -> this
@@ -37,7 +37,7 @@ function formatClock(date: Date): string {
  *
  * Extracted from the original StreamScreen.tsx so both the standalone
  * full-screen stream view (reached right after pairing) and the embedded
- * section on a camera's detail page share one implementation — the
+ * section on a camera's detail page share one implementation - the
  * self-abort bug (setPhase() from inside the read loop tearing down its own
  * fetch) only needs fixing once this way.
  */
@@ -97,7 +97,7 @@ export function useStreamTap(serial: string) {
 
     const start = async () => {
       try {
-        // Fresh, right before use — same rule as the wifi-configured timing
+        // Fresh, right before use - same rule as the wifi-configured timing
         // bug taught us. A UUID/session seen a moment ago can already be gone.
         logEvent('tx', `GET /admin/device/${serial} (fresh, right before opening the stream)`)
         const info = await adminGetDevice(serial)
@@ -115,7 +115,7 @@ export function useStreamTap(serial: string) {
         url.searchParams.set('stream_type', '0')
 
         // Authenticated with THIS app's own login now, not the camera
-        // backend's admin key directly — the mini backend attaches that
+        // backend's admin key directly - the mini backend attaches that
         // server-side once it sees this Bearer token is valid.
         const token = getAuthToken()
         logEvent('tx', `Opening raw stream tap: ${url.pathname}?${url.searchParams.toString()}`)
@@ -132,7 +132,7 @@ export function useStreamTap(serial: string) {
         }
 
         // Deliberately NOT calling setPhase() here (or anywhere else once
-        // reading starts) — this effect is keyed on `phase`, so changing it
+        // reading starts) - this effect is keyed on `phase`, so changing it
         // would run this same effect's own cleanup below (cancelled = true;
         // controller.abort()) on the very next render, aborting the fetch
         // moments after it started. `stats` being non-null is what the UI
@@ -143,7 +143,7 @@ export function useStreamTap(serial: string) {
         let bytes = 0
         setStats({ chunks, bytes, startedAt })
         setLines([])
-        appendLine(`${formatClock(new Date())}  connected — reading live stream body`)
+        appendLine(`${formatClock(new Date())}  connected - reading live stream body`)
 
         while (true) {
           const { done, value } = await reader.read()

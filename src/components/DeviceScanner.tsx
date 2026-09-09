@@ -34,7 +34,7 @@ function StepDots({ step }: { step: Step }) {
 }
 
 // Resuming lands on 'backend' or 'stream', both of which run entirely off
-// the serial + backend API — no BLE device handle needed, which is good,
+// the serial + backend API - no BLE device handle needed, which is good,
 // because a GATT handle never survives a reload anyway.
 const initialSession = loadSessionState()
 
@@ -49,12 +49,12 @@ export function DeviceScanner() {
   const reminderTimer = useRef<number | null>(null)
   const { device, error, scanning, scan, reset } = useBleScan()
 
-  // Fixed-position, auto-dismissing — never affects the card's height. Only
+  // Fixed-position, auto-dismissing - never affects the card's height. Only
   // relevant on scan/find/wifi: each of those only ever advances because its
   // real prerequisite (a scanned serial, a found device, a submitted WiFi
   // form) already fired, which auto-navigates away immediately. So being
   // *on* one of these steps means, by construction, that swiping forward
-  // can never have a valid next screen yet — there's no "skip ahead"
+  // can never have a valid next screen yet - there's no "skip ahead"
   // state to reach, only a reminder that the real action still needs doing.
   const showReminder = (text: string) => {
     setReminder(text)
@@ -69,7 +69,7 @@ export function DeviceScanner() {
   }, [device, step])
 
   // Once we're past Bluetooth entirely, remember where we are so closing the
-  // tab/app and coming back doesn't force starting over from the QR scan —
+  // tab/app and coming back doesn't force starting over from the QR scan -
   // reopening resumes straight into the backend status / stream screen.
   useEffect(() => {
     if (step === 'backend' || step === 'stream') {
@@ -79,7 +79,7 @@ export function DeviceScanner() {
 
   // A reload has no live GATT handle. If something routes back into
   // 'pairing' without one (e.g. "fix WiFi & retry" after resuming from a
-  // closed tab), there's nothing to pair with — send back to re-discover the
+  // closed tab), there's nothing to pair with - send back to re-discover the
   // device over Bluetooth instead of rendering a dead screen.
   useEffect(() => {
     if (step === 'pairing' && !device) setStep('find')
@@ -116,7 +116,7 @@ export function DeviceScanner() {
     () => {
       const message = SWIPE_FORWARD_REMINDER[step]
       if (message) showReminder(message)
-      // pairing/backend/stream: no message, swipe forward is simply inert —
+      // pairing/backend/stream: no message, swipe forward is simply inert -
       // these are live processes, not a form to skip ahead of.
     },
     () => {
@@ -211,7 +211,7 @@ export function DeviceScanner() {
         {step === 'stream' && <StreamScreen serial={serial} onBack={() => setStep('backend')} />}
       </div>
 
-      {/* Absolutely positioned and auto-dismissing — never shifts the card
+      {/* Absolutely positioned and auto-dismissing - never shifts the card
           above it, however long the message runs. A plain reminder, not an
           error/warning: nothing has gone wrong, the next step just isn't
           unlocked yet. */}

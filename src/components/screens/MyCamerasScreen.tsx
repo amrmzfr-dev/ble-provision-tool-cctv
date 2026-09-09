@@ -22,9 +22,9 @@ function statusTone(status: string | null): string {
 }
 
 /**
- * A plain tappable list — no per-row action buttons cluttering each card.
+ * A plain tappable list - no per-row action buttons cluttering each card.
  * Tap opens CameraDetailScreen (status/stream/reset all live there). Hold a
- * row for ~2s to bring up a "delete from list?" confirmation instead —
+ * row for ~2s to bring up a "delete from list?" confirmation instead -
  * removing a camera from this personal list isn't something that should be
  * one accidental tap away, but it's also not important enough to earn a
  * permanent button on every row.
@@ -77,7 +77,7 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
   }
 
   const handleRowClick = (serial: string) => {
-    // The long-press timer already opened the delete confirmation — this
+    // The long-press timer already opened the delete confirmation - this
     // click is just the same touch/click being released, not a new tap.
     if (longPressFired.current) return
     onOpenCamera(serial)

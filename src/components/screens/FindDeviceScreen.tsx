@@ -11,7 +11,7 @@ interface FindDeviceScreenProps {
 
 /**
  * Primary button filters the browser's own device picker down to Dahua
- * devices only (manufacturer ID, see useBleScan.ts's 'manufacturer' mode) —
+ * devices only (manufacturer ID, see useBleScan.ts's 'manufacturer' mode) -
  * this can't skip the picker itself (Web Bluetooth always requires a user
  * gesture on a real chooser dialog, a hard spec-level rule with no
  * workaround, same as every other website), but it does mean the list is
@@ -51,7 +51,7 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
         </div>
         <p className="max-w-[26ch] text-justify text-sm text-muted-foreground">
           Your browser will show its own picker, pre-filtered to just this camera's kind of
-          device — pick it from that list, then pairing continues automatically.
+          device - pick it from that list, then pairing continues automatically.
         </p>
 
         <div className="flex-1" />

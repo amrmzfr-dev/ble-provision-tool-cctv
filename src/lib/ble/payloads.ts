@@ -23,7 +23,7 @@ export function buildWifiPayload(ssid: string, password: string): Uint8Array {
   return out
 }
 
-/** Big-endian int64 seconds, local time shifted by the timezone offset — matches postUTCTimePacket. */
+/** Big-endian int64 seconds, local time shifted by the timezone offset - matches postUTCTimePacket. */
 export function buildTimePayload(date: Date): Uint8Array {
   const localMillis = BigInt(date.getTime())
   const tzOffsetMillis = BigInt(-date.getTimezoneOffset() * 60_000)
@@ -37,12 +37,12 @@ export function buildTimePayload(date: Date): Uint8Array {
 
 /**
  * UNCONFIRMED against real hardware. The decompiled SDK note says the SN/SC
- * response "arrives as an ASCII string encoded as hex" — read two ways:
+ * response "arrives as an ASCII string encoded as hex" - read two ways:
  * (a) the wire bytes are themselves plain ASCII (the serial's characters
  *     directly), or (b) the wire bytes are ASCII hex digits that need one
  *     more hex-decode to reach the real string.
  * This tries (b) first since that's the more literal reading of the note,
- * falling back to (a) if the bytes aren't valid hex — so it self-corrects
+ * falling back to (a) if the bytes aren't valid hex - so it self-corrects
  * once tested against a real camera either way.
  */
 export function parseSnOrScResponse(data: Uint8Array): string {

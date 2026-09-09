@@ -27,7 +27,7 @@ describe('RSA keypair generation + decrypt', () => {
 
     // Simulates "the camera encrypts a secret against the modulus we sent
     // it" by reconstructing a forge public key from the exposed raw
-    // modulus (n) and the exponent generateRsaKeypair always uses (65537) —
+    // modulus (n) and the exponent generateRsaKeypair always uses (65537) -
     // this is exactly what n/e fully determine, no access to module
     // internals needed.
     const n = new forge.jsbn.BigInteger(bytesToHex(keypair.modulus), 16)

@@ -9,7 +9,7 @@ import { ApiError, setAuthToken } from '@/lib/api/config'
  * Gates the whole app. Replaced the old per-flow AdminKeyGate: instead of
  * the browser holding the real camera backend's X-Admin-Key directly (in
  * localStorage, sent on every request), it now only ever holds a login for
- * this app's own mini backend — that backend holds the real key server-side
+ * this app's own mini backend - that backend holds the real key server-side
  * and never sends it to the browser.
  */
 export function LoginScreen() {
@@ -39,7 +39,7 @@ export function LoginScreen() {
       </div>
       <div className="text-center">
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Sign in</h2>
-        <p className="mt-1 text-sm text-muted-foreground">CCTV pairing tool — testers only</p>
+        <p className="mt-1 text-sm text-muted-foreground">CCTV pairing tool - testers only</p>
       </div>
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3">
         <Input

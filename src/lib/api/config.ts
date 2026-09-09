@@ -1,13 +1,13 @@
-// Relative — this app's own nginx proxies /api/* to the mini backend
+// Relative - this app's own nginx proxies /api/* to the mini backend
 // (backend/, BleProvisionApi) server-side (see nginx.conf), so the browser
 // only ever talks same-origin. That backend, not the browser, holds the real
-// camera backend's X-Admin-Key — the browser only ever needs its own login.
+// camera backend's X-Admin-Key - the browser only ever needs its own login.
 export const API_BASE = '/api'
 
 const AUTH_TOKEN_STORAGE = 'ble-provision-auth-token'
 
 // Tiny pub/sub so App.tsx's login gate (via useSyncExternalStore) reacts
-// immediately to a login/logout/expiry — plain localStorage writes don't
+// immediately to a login/logout/expiry - plain localStorage writes don't
 // trigger a re-render on their own.
 const authListeners = new Set<() => void>()
 function notifyAuthChanged(): void {
@@ -18,7 +18,7 @@ export function subscribeAuthToken(listener: () => void): () => void {
   return () => authListeners.delete(listener)
 }
 
-// Never bake secrets into the build — anything in the bundle is readable by
+// Never bake secrets into the build - anything in the bundle is readable by
 // anyone who opens the page. This is a JWT from this app's own login, not
 // the camera backend's admin key (that never leaves the backend anymore).
 export function getAuthToken(): string | null {
@@ -53,10 +53,10 @@ export class ApiError extends Error {
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  /** False only for the login call itself — every other endpoint requires a logged-in session. */
+  /** False only for the login call itself - every other endpoint requires a logged-in session. */
   auth?: boolean
   // Stream tokens are a separate, per-user/per-camera concept from this
-  // app's own login — issued at call time by the real camera backend, not a
+  // app's own login - issued at call time by the real camera backend, not a
   // stored secret like the auth token above.
   streamToken?: string
   body?: unknown
@@ -91,7 +91,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   })
 
   if (res.status === 401 && auth) {
-    // The token expired or was never valid — this app's own login session is
+    // The token expired or was never valid - this app's own login session is
     // gone. Clearing it here (rather than in every caller) means the next
     // render of the login-gate check in App.tsx sends the user back to the
     // login screen instead of silently failing every request from here on.

@@ -33,7 +33,7 @@ export function LogConsole() {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      // Clipboard permission denied or unavailable — nothing more we can do here.
+      // Clipboard permission denied or unavailable - nothing more we can do here.
     }
   }
 

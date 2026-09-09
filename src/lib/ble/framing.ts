@@ -1,6 +1,6 @@
 import { FRAGMENT_FLAG, FRAGMENT_HEADER_LEN, FRAGMENT_PAYLOAD_MAX } from './constants'
 
-/** [cmdHi][cmdLo][dataLen][payload...][checksum] — checksum is added to every frame, plaintext or not (encryption, when it happens, wraps this whole thing). */
+/** [cmdHi][cmdLo][dataLen][payload...][checksum] - checksum is added to every frame, plaintext or not (encryption, when it happens, wraps this whole thing). */
 export function buildAppFrame(cmd: number, payload: Uint8Array): Uint8Array {
   const frame = new Uint8Array(3 + payload.length)
   frame[0] = (cmd >> 8) & 0xff
@@ -71,12 +71,12 @@ export function fragmentFrame(frame: Uint8Array, encrypted: boolean): Uint8Array
 }
 
 export interface AssembledFrame {
-  /** The complete inner frame bytes — still AES-ciphertext if `encrypted` is true, otherwise ready for parseAppFrame directly. */
+  /** The complete inner frame bytes - still AES-ciphertext if `encrypted` is true, otherwise ready for parseAppFrame directly. */
   raw: Uint8Array
   encrypted: boolean
 }
 
-/** Accumulates incoming GATT notification fragments until a full frame arrives. One instance per in-flight request — the protocol is strictly request/response, so there's never more than one message being reassembled at a time. */
+/** Accumulates incoming GATT notification fragments until a full frame arrives. One instance per in-flight request - the protocol is strictly request/response, so there's never more than one message being reassembled at a time. */
 export class FrameAssembler {
   private chunks: number[] = []
 

@@ -6,13 +6,13 @@ namespace BleProvisionApi.Services;
 /// <summary>
 /// The one place the real camera backend's X-Admin-Key ever exists. The
 /// browser authenticates to THIS api with its own login (JWT) and never
-/// sees that key — every /api/device/* and /api/admin/* call the frontend
+/// sees that key - every /api/device/* and /api/admin/* call the frontend
 /// makes gets forwarded here with the real key attached server-side.
 ///
 /// Streaming matters: /api/admin/stream/&lt;uuid&gt; is an effectively-infinite
 /// live response. HttpCompletionOption.ResponseHeadersRead plus copying the
 /// content stream directly to the outgoing response (no intermediate byte
-/// array) keeps this from buffering the whole thing — the same class of bug
+/// array) keeps this from buffering the whole thing - the same class of bug
 /// already hit once with nginx's default proxy_buffering on the frontend
 /// container; buffering here would reintroduce it one layer deeper.
 /// </summary>
@@ -35,7 +35,7 @@ public class CctvBackendProxy(HttpClient httpClient, IOptions<CctvBackendOptions
             }
         }
 
-        // The real key, injected here only — never trust/forward anything
+        // The real key, injected here only - never trust/forward anything
         // the browser sent for this header.
         forwardRequest.Headers.Remove("X-Admin-Key");
         forwardRequest.Headers.TryAddWithoutValidation("X-Admin-Key", _options.AdminKey);
@@ -88,7 +88,7 @@ public class CctvBackendProxy(HttpClient httpClient, IOptions<CctvBackendOptions
         // JsonElement is a struct, so DeserializeAsync<JsonElement> never
         // actually returns null at runtime despite the T? in its signature
         // (that annotation only takes effect for reference types on an
-        // unconstrained generic parameter) — no null fallback needed here.
+        // unconstrained generic parameter) - no null fallback needed here.
         return await JsonSerializer.DeserializeAsync<JsonElement>(stream);
     }
 }

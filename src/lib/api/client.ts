@@ -1,4 +1,4 @@
-// Full typed surface for cctv-api-prod — see API_REFERENCE.md for the source
+// Full typed surface for cctv-api-prod - see API_REFERENCE.md for the source
 // docs/line-numbers behind each of these. Only getDeviceStatus and
 // postWifiConfigured are wired into this app's UI today (Phase 5); the rest
 // is here because the full backend API was asked for, ready for whenever a
@@ -35,7 +35,7 @@ export function registerCredentials(
 }
 
 // Note the asymmetry: this is keyed by serial, but approve/reject below are
-// keyed by request_id — that's the actual backend shape, not a typo.
+// keyed by request_id - that's the actual backend shape, not a typo.
 export function getDeviceRequestStatus(
   serial: string,
   userId: string,
@@ -69,7 +69,7 @@ export function getLicenseInfo(): Promise<Record<string, unknown>> {
   return apiFetch('/license-info')
 }
 
-// ---- Provisioning — used by this app ----
+// ---- Provisioning - used by this app ----
 
 export function postWifiConfigured(
   serial: string,
@@ -81,7 +81,7 @@ export function postWifiConfigured(
   })
 }
 
-// ---- Device Control — ⚠️ no auth enforced server-side, see API_REFERENCE.md ----
+// ---- Device Control - ⚠️ no auth enforced server-side, see API_REFERENCE.md ----
 
 export function resetDevice(serial: string, req: DeviceResetRequest = { confirm: true }): Promise<{ success: true }> {
   return apiFetch(`/device/${serial}/reset`, { method: 'POST', body: req })
@@ -126,7 +126,7 @@ export function getDevicePlaybackUrl(serial: string): string {
   return `/api/device/${serial}/playback`
 }
 
-// ---- WiFi Config — ⚠️ no auth enforced server-side, see API_REFERENCE.md ----
+// ---- WiFi Config - ⚠️ no auth enforced server-side, see API_REFERENCE.md ----
 
 export function getDeviceWifi(serial: string): Promise<WifiInterface[]> {
   return apiFetch(`/device/${serial}/wifi`)
@@ -181,9 +181,9 @@ export function revokeToken(token: string): Promise<{ success: true }> {
   return apiFetch(`/tokens/${token}/revoke`, { method: 'POST' })
 }
 
-// ---- Admin — Auth ----
+// ---- Admin - Auth ----
 
-/** Returns the raw admin API key in the response — treat as sensitive, never log it. */
+/** Returns the raw admin API key in the response - treat as sensitive, never log it. */
 export function adminLogin(req: AdminLoginRequest): Promise<AdminLoginResponse> {
   return apiFetch('/admin/auth/login', { method: 'POST', body: req })
 }
@@ -192,7 +192,7 @@ export function adminLogout(): Promise<{ success: true }> {
   return apiFetch('/admin/auth/logout', { method: 'POST' })
 }
 
-// ---- Admin — Users CRUD ----
+// ---- Admin - Users CRUD ----
 
 export function adminListUsers(): Promise<AdminUser[]> {
   return apiFetch('/admin/users')
@@ -213,10 +213,10 @@ export function adminDeleteUser(username: string): Promise<{ success: true }> {
   return apiFetch(`/admin/users/${username}`, { method: 'DELETE' })
 }
 
-// ---- Admin — Device Management ----
+// ---- Admin - Device Management ----
 
 /**
- * Only actually works while the camera is currently connected — the SDK
+ * Only actually works while the camera is currently connected - the SDK
  * reset command routes through the backend's live session for this device
  * (registered_devices[serial].ip/port), not a fresh connection made on
  * demand. Confirmed via api_server_listen_mode.py: no ip/port (or no
@@ -261,7 +261,7 @@ export function adminGetStreamUrl(streamUuid: string): string {
   return `/api/admin/stream/${streamUuid}`
 }
 
-// ---- Admin — Tokens & Client Key ----
+// ---- Admin - Tokens & Client Key ----
 
 export function adminListTokens(): Promise<StreamTokenResponse[]> {
   return apiFetch('/admin/tokens')

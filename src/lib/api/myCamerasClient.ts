@@ -1,4 +1,4 @@
-// This app's own "My Cameras" revisit list — backed by BleProvisionApi's
+// This app's own "My Cameras" revisit list - backed by BleProvisionApi's
 // Postgres, not the real camera backend. See backend/Controllers/MyCamerasController.cs.
 import { apiFetch } from './config'
 
@@ -22,7 +22,7 @@ export function updateMyCameraStatus(serial: string, status: string): Promise<vo
   return apiFetch(`/mycameras/${serial}/status`, { method: 'PUT', body: status })
 }
 
-/** One request refreshes every camera in the list — the backend fetches the real backend's bulk /admin/cameras once and filters it down, instead of one status call per row. */
+/** One request refreshes every camera in the list - the backend fetches the real backend's bulk /admin/cameras once and filters it down, instead of one status call per row. */
 export function refreshAllMyCameras(): Promise<CameraDto[]> {
   return apiFetch('/mycameras/refresh', { method: 'POST' })
 }

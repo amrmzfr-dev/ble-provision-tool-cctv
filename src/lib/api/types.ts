@@ -1,5 +1,5 @@
 // Types for every endpoint in API_REFERENCE.md. Only DeviceStatus /
-// WifiConfiguredResponse are actually used by this app today (Phase 5) — the
+// WifiConfiguredResponse are actually used by this app today (Phase 5) - the
 // rest exist so client.ts has an accurate typed surface ready for later use.
 
 export type DeviceStatusValue =

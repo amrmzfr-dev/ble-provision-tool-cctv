@@ -37,7 +37,7 @@ describe('buildTimePayload', () => {
 
   it('encodes local-time-shifted seconds, not raw UTC seconds', () => {
     // Independently recomputes the same shift buildTimePayload should apply,
-    // using the test runner's own getTimezoneOffset() — this passes
+    // using the test runner's own getTimezoneOffset() - this passes
     // regardless of what timezone the machine running it is in, since both
     // sides use the same formula rather than assuming a fixed offset.
     const date = new Date('2026-01-01T00:00:00Z')
@@ -54,7 +54,7 @@ describe('buildTimePayload', () => {
 describe('parseSnOrScResponse', () => {
   it('hex-decodes a double-encoded ASCII-hex response', () => {
     // "AB12" as ASCII-hex-of-ASCII: each character of "AB12" hex-encoded is
-    // "41423132" — the wire bytes are the ASCII characters of that hex
+    // "41423132" - the wire bytes are the ASCII characters of that hex
     // string, which this function should decode back to "AB12".
     const hexOfHex = '41423132'
     const wireBytes = new TextEncoder().encode(hexOfHex)

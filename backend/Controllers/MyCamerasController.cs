@@ -24,7 +24,7 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
         return Ok(cameras);
     }
 
-    /// <summary>Upsert — called automatically once pairing reaches "connected", so this list builds itself as cameras get tested. Also callable manually to add a serial without re-pairing.</summary>
+    /// <summary>Upsert - called automatically once pairing reaches "connected", so this list builds itself as cameras get tested. Also callable manually to add a serial without re-pairing.</summary>
     [HttpPost]
     public async Task<ActionResult<CameraDto>> Upsert(UpsertCameraRequest request)
     {
@@ -48,7 +48,7 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
         return Ok(new CameraDto(camera.Serial, camera.Label, camera.LastStatus, camera.LastStatusAt, camera.AddedAt));
     }
 
-    /// <summary>Cache the live status against this list entry — called by the frontend right after it refreshes a camera's status via the proxied /api/device/&lt;serial&gt;/status call, so the list shows something without a live round trip every render.</summary>
+    /// <summary>Cache the live status against this list entry - called by the frontend right after it refreshes a camera's status via the proxied /api/device/&lt;serial&gt;/status call, so the list shows something without a live round trip every render.</summary>
     [HttpPut("{serial}/status")]
     public async Task<IActionResult> UpdateStatus(string serial, [FromBody] string status)
     {
@@ -108,7 +108,7 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
                 camera.LastStatusAt = now;
             }
             // Not in the bulk list at all (never registered with the camera
-            // backend, or it's been restarted since) — leave the last known
+            // backend, or it's been restarted since) - leave the last known
             // status alone rather than overwriting it with a guess.
         }
         await db.SaveChangesAsync();

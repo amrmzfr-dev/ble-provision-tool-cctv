@@ -11,7 +11,7 @@ interface SwipeHandlers {
 }
 
 /**
- * Minimal horizontal-swipe recognizer — no gesture library, just tracking
+ * Minimal horizontal-swipe recognizer - no gesture library, just tracking
  * one pointer's start/end position. Ignores drags that move more vertically
  * than horizontally (that's a scroll, not a swipe) and anything under the
  * threshold (that's a tap or a wobble, not an intentional swipe).
@@ -24,7 +24,7 @@ export function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void): Swi
   }
 
   const onPointerMove = () => {
-    // Position is read on release, not during drag — no live tracking or
+    // Position is read on release, not during drag - no live tracking or
     // drag-following animation needed for this to work.
   }
 

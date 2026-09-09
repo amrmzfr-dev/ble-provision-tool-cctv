@@ -6,7 +6,7 @@ interface UseQrScannerResult {
   error: string | null
   start: () => Promise<void>
   stop: () => void
-  /** Normalized [0,1] point in the camera's own frame — see handleTapToFocus in ScanSerialScreen for converting a tap position into this. */
+  /** Normalized [0,1] point in the camera's own frame - see handleTapToFocus in ScanSerialScreen for converting a tap position into this. */
   focusAt: (x: number, y: number) => void
 }
 
@@ -61,7 +61,7 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
   const start = useCallback(async () => {
     setError(null)
     try {
-      // Small QR codes need real resolution to resolve — the default
+      // Small QR codes need real resolution to resolve - the default
       // getUserMedia stream is often ~640x480, nowhere near enough detail
       // for a small code at arm's length. `focusMode` isn't in TypeScript's
       // DOM types (still an experimental Image Capture extension) but
@@ -81,7 +81,7 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
       try {
         await track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet] })
       } catch {
-        // Not supported on this device/browser — the initial getUserMedia
+        // Not supported on this device/browser - the initial getUserMedia
         // constraint above is the fallback attempt, and plain autofocus is
         // still better than nothing if neither takes.
       }
@@ -101,7 +101,7 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
     if (!track) return
 
     // pointsOfInterest biases continuous AF/AE toward this point rather than
-    // locking focus there outright — same experimental Image Capture
+    // locking focus there outright - same experimental Image Capture
     // extension as focusMode, so this is a best-effort nudge, not a
     // guaranteed refocus. Fails silently where unsupported (most non-Android
     // browsers, including Bluefy on iOS).

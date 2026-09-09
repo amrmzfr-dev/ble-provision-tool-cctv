@@ -5,7 +5,7 @@ namespace BleProvisionApi.Controllers;
 
 /// <summary>
 /// Catch-all for everything that isn't this backend's own auth/mycameras
-/// endpoints — /api/device/*, /api/admin/*, /api/stream/*, etc. all forward
+/// endpoints - /api/device/*, /api/admin/*, /api/stream/*, etc. all forward
 /// to the real camera backend with the admin key attached server-side. The
 /// frontend's existing typed client (src/lib/api/client.ts) already calls
 /// these exact relative paths; nothing about their shape changes, only that

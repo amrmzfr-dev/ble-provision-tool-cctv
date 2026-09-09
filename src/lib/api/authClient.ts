@@ -1,5 +1,5 @@
 // Calls to this app's OWN mini backend (backend/, BleProvisionApi) for its
-// own login — separate from client.ts, which is the typed surface for the
+// own login - separate from client.ts, which is the typed surface for the
 // real camera backend (cctv.czeros.tech) that BleProvisionApi proxies to.
 import { apiFetch } from './config'
 

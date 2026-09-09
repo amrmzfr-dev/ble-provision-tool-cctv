@@ -39,7 +39,7 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
     const tapY = event.clientY - rect.top
 
     // object-cover scales the native video up until it fully covers the
-    // container, cropping whatever overflows on one axis — undo that to map
+    // container, cropping whatever overflows on one axis - undo that to map
     // a tap on the displayed preview back to a normalized [0,1] point in the
     // camera's own frame, which is what pointsOfInterest expects.
     const scale = Math.max(rect.width / video.videoWidth, rect.height / video.videoHeight)
@@ -76,7 +76,7 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
                 <p>
                   There are <strong className="text-foreground">two</strong> QR codes on the
                   charger's label. Scan the <strong className="text-foreground">small</strong> one
-                  near the Perodua logo at the top — <strong className="text-foreground">not</strong>{' '}
+                  near the Perodua logo at the top - <strong className="text-foreground">not</strong>{' '}
                   the larger one further down next to the Charging Pile ID.
                 </p>
               </div>
@@ -88,10 +88,9 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
                   className="w-full rounded-xl border border-border"
                 />
                 <p>
-                  The camera needs to already be in pairing mode before the next step can find it
-                  — look for the small LED just below its lens, blinking{' '}
-                  <strong className="text-foreground">green quickly</strong>. If it isn't blinking,
-                  it may need a power cycle or a physical reset first.
+                  Before scanning, make sure the LED is <strong className="text-foreground">blinking green</strong> -
+                  that means it's in pairing mode. If it's not blinking green, this camera has
+                  already been paired with another device.
                 </p>
               </div>
             </div>
@@ -108,7 +107,7 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
             <QrCode className="size-8" />
           </div>
           <p className="max-w-[26ch] text-justify text-sm text-muted-foreground">
-            Ready when you are — this opens your camera to scan the QR code.
+            Ready when you are - this opens your camera to scan the QR code.
           </p>
           <Button size="lg" className="w-full" onClick={() => setMode('camera')}>
             <QrCode />

@@ -23,7 +23,7 @@ function statusTone(status: string | null): string {
 }
 
 /**
- * One page, no tabs — stream log up top (roughly 70% of the space, with a
+ * One page, no tabs - stream log up top (roughly 70% of the space, with a
  * genuinely FIXED height so it scrolls internally instead of growing the
  * whole page as lines accumulate; a live stream easily produces thousands
  * of lines), reset below (~30%), status folded into a small badge in the
@@ -44,7 +44,7 @@ export function CameraDetailScreen({ serial, onBack }: CameraDetailScreenProps) 
       logEvent('rx', `status=${result.status}`)
       setStatus(result.status)
       await updateMyCameraStatus(serial, result.status).catch(() => {
-        // Cache write failing isn't worth surfacing — the live check above already succeeded.
+        // Cache write failing isn't worth surfacing - the live check above already succeeded.
       })
     } catch (err) {
       logEvent('error', `Status check failed: ${err instanceof ApiError ? err.message : String(err)}`)
@@ -107,19 +107,19 @@ export function CameraDetailScreen({ serial, onBack }: CameraDetailScreenProps) 
         <div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-border bg-card p-3">
           <p className="text-justify font-mono text-xs text-muted-foreground">
             Wipes the camera's settings and puts it back into pairing mode.{' '}
-            <strong className="text-foreground">Make sure the camera is connected first</strong> —
+            <strong className="text-foreground">Make sure the camera is connected first</strong> -
             this won't work otherwise.
           </p>
 
           {resetState === 'done' ? (
             <p className="rounded-xl bg-lime/10 p-2 text-xs text-lime">
-              Factory reset sent — the camera should reboot into pairing mode shortly.
+              Factory reset sent - the camera should reboot into pairing mode shortly.
             </p>
           ) : resetState === 'confirming' ? (
             <div className="flex flex-col gap-2 rounded-xl bg-destructive/10 p-2">
               <span className="flex items-center gap-2 text-xs font-semibold text-destructive uppercase">
                 <AlertTriangle className="size-4" />
-                This wipes all config — irreversible
+                This wipes all config - irreversible
               </span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => setResetState('idle')}>

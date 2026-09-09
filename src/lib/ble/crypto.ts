@@ -16,7 +16,7 @@ function asBufferSource(bytes: Uint8Array): BufferSource {
 // used for the AES-CBC session once the key is derived.
 
 export interface RsaKeypair {
-  /** Raw 128-byte modulus, no DER wrapper — this is what goes on the wire. */
+  /** Raw 128-byte modulus, no DER wrapper - this is what goes on the wire. */
   modulus: Uint8Array
   decrypt: (ciphertext: Uint8Array) => Uint8Array
 }
@@ -67,7 +67,7 @@ export interface SessionKey {
 /**
  * secret is the camera's RSA-decrypted response to our public key. Derivation
  * quirk confirmed from the decompiled SDK: the AES key is the *hex text* of
- * MD5(secret), not the 16 raw MD5 bytes — i.e. MD5 it, render as a 32-char
+ * MD5(secret), not the 16 raw MD5 bytes - i.e. MD5 it, render as a 32-char
  * lowercase hex string, then use those 32 ASCII characters as the key.
  */
 export function deriveSessionKey(secret: Uint8Array): SessionKey {
@@ -79,7 +79,7 @@ export function deriveSessionKey(secret: Uint8Array): SessionKey {
   const iv = secret.slice(0, secret.length / 2)
   if (iv.length !== 16) {
     throw new Error(
-      `Derived a ${iv.length}-byte IV, expected 16 — the assumed 32-byte secret length may be wrong on this camera`,
+      `Derived a ${iv.length}-byte IV, expected 16 - the assumed 32-byte secret length may be wrong on this camera`,
     )
   }
 
@@ -94,7 +94,7 @@ async function importAesKey(keyBytes: Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', asBufferSource(keyBytes), 'AES-CBC', false, ['encrypt', 'decrypt'])
 }
 
-/** AES-256-CBC/PKCS7 — WebCrypto's AES-CBC pads/unpads with PKCS7 natively, which is byte-for-byte the same as Java's PKCS5Padding at a 16-byte block size. */
+/** AES-256-CBC/PKCS7 - WebCrypto's AES-CBC pads/unpads with PKCS7 natively, which is byte-for-byte the same as Java's PKCS5Padding at a 16-byte block size. */
 export async function aesCbcEncrypt(data: Uint8Array, session: SessionKey): Promise<Uint8Array> {
   const cryptoKey = await importAesKey(session.key)
   const cipher = await crypto.subtle.encrypt(

@@ -95,7 +95,7 @@ jobs:
               exit 1
             fi
 
-            # ble-postgres is deliberately not force-recreated — it only needs
+            # ble-postgres is deliberately not force-recreated - it only needs
             # to exist and stay up, never rebuilt on every deploy.
             docker compose -f docker-compose.prod.yml up -d ble-postgres
             docker compose -f docker-compose.prod.yml up -d --force-recreate ble-backend ble-provision

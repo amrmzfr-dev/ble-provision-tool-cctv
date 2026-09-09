@@ -9,13 +9,13 @@ interface HelpTipProps {
 }
 
 /**
- * A small "?" button that opens a full guide as a modal — for exactly the
+ * A small "?" button that opens a full guide as a modal - for exactly the
  * kind of thing a first-time user won't know to ask about (which QR code,
  * what the camera's LED means) but an experienced tester wouldn't need
  * explained every time, so it stays out of the way until tapped.
  *
  * The modal itself is a fixed height, always vertically centered, with only
- * the middle content area scrolling — a short guide and a long one (e.g.
+ * the middle content area scrolling - a short guide and a long one (e.g.
  * two images stacked) both render at the same size instead of the modal
  * growing to fit whatever's inside it, the same fixed-container rule
  * StreamTapPanel already follows.
@@ -40,7 +40,7 @@ export function HelpTip({ title, imageSrc, imageAlt, children }: HelpTipProps) {
           onClick={() => setOpen(false)}
         >
           <div
-            // min(70svh, 32rem) — 70% of the actual device viewport on a
+            // min(70svh, 32rem) - 70% of the actual device viewport on a
             // typical phone, but capped so it doesn't turn into an
             // absurdly tall panel on a bigger screen/tablet. svh already
             // reflects each device's real screen height, so this adapts

@@ -1,6 +1,6 @@
 // Persists just enough to resume after the tab/app is closed mid-flow. Only
 // meaningful past the point where nothing left in the flow depends on a live
-// BLE GATT handle (which never survives a reload) — i.e. once the backend,
+// BLE GATT handle (which never survives a reload) - i.e. once the backend,
 // not Bluetooth, is the source of truth for what happens next.
 const STORAGE_KEY = 'ble-provision-active-session'
 

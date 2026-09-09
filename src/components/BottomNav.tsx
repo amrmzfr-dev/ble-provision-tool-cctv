@@ -22,7 +22,7 @@ export function BottomNav({ active, onSelect, theme, onToggleTheme, onLogoutClic
 
   return (
     <>
-      {/* Tap-outside-to-close backdrop — sits just under the nav/tray so it
+      {/* Tap-outside-to-close backdrop - sits just under the nav/tray so it
           never blocks their own buttons. */}
       {trayOpen && (
         <div className="fixed inset-0 z-30" onClick={() => setTrayOpen(false)} aria-hidden />

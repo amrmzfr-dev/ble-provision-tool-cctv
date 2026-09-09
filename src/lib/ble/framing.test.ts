@@ -33,7 +33,7 @@ describe('buildAppFrame / parseAppFrame', () => {
 
   it('parses cmd/data correctly regardless of a trailing checksum byte', () => {
     // parseAppFrame reads exactly `len` data bytes, so it doesn't care what
-    // trailing byte(s) follow — this is what makes it safe to call on the
+    // trailing byte(s) follow - this is what makes it safe to call on the
     // frame either right after buildAppFrame or after AES round-tripping it.
     const frame = buildAppFrame(0x018e, new Uint8Array([0xaa, 0xbb]))
     const parsed = parseAppFrame(frame)
@@ -67,7 +67,7 @@ describe('fragmentFrame / FrameAssembler round-trip', () => {
 
   it('splits a 97-byte WiFi-sized payload into first/middle/last fragments and reassembles it exactly', () => {
     // The real WiFi payload plus header/checksum overhead lands well past
-    // the 16-byte-per-fragment limit — this is the shape that exercises the
+    // the 16-byte-per-fragment limit - this is the shape that exercises the
     // multi-fragment path for real.
     const frame = new Uint8Array(101)
     for (let i = 0; i < frame.length; i++) frame[i] = i % 256

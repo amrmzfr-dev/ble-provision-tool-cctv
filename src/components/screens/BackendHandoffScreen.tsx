@@ -12,12 +12,12 @@ const POLL_TIMEOUT_MS = 6 * 60 * 1000 // slightly past the backend's own 5-minut
 
 interface BackendHandoffScreenProps {
   serial: string
-  /** True if PairingScreen already sent wifi-configured right after the WiFi ack — skip straight to polling instead of sending it again. */
+  /** True if PairingScreen already sent wifi-configured right after the WiFi ack - skip straight to polling instead of sending it again. */
   alreadyNotified: boolean
   onDone: () => void
   onRetryWifi: () => void
   onViewStream: () => void
-  /** Bail out while still submitting/waiting — the poll has no other exit besides connecting or a 6-minute timeout. */
+  /** Bail out while still submitting/waiting - the poll has no other exit besides connecting or a 6-minute timeout. */
   onCancel: () => void
 }
 
@@ -65,13 +65,13 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
         logEvent('tx', `GET /device/${serial}/status`)
         const result = await getDeviceStatus(serial)
         if (cancelled) return
-        logEvent('rx', `status=${result.status} — ${result.status_description}`)
+        logEvent('rx', `status=${result.status} - ${result.status_description}`)
         setStatus(result)
 
         if (result.status === 'connected') {
           logEvent('success', 'Camera connected')
           setPhase('connected')
-          // Fire-and-forget — this is what builds the "My Cameras" list, but
+          // Fire-and-forget - this is what builds the "My Cameras" list, but
           // it never blocks or fails the pairing flow itself if it errors.
           upsertMyCamera(serial).catch((err: unknown) => {
             logEvent('error', `Could not save to My Cameras: ${err instanceof ApiError ? err.message : String(err)}`)
@@ -117,7 +117,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
       logEvent('success', `Factory reset command sent for ${serial}`)
       setResetState('done')
     } catch (err) {
-      // Only works while the camera's still connected — see the doc comment
+      // Only works while the camera's still connected - see the doc comment
       // on adminResetDevice. A stale registration (ip/port never set, or the
       // camera already dropped) fails here, not a permissions problem.
       const message = err instanceof ApiError ? err.message : String(err)
@@ -156,7 +156,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
               You can also check the camera itself, and the LED means something different at each
               stage: while it's still trying to join the WiFi, it keeps blinking green fast and
               continuously, the same as pairing mode. Once it's actually connected, the LED holds
-              solid green instead — it'll still flick off and back on 1 to 3 times every few
+              solid green instead - it'll still flick off and back on 1 to 3 times every few
               minutes, but that short burst is normal and doesn't mean it dropped.
             </p>
           )}
@@ -181,13 +181,13 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
 
           {resetState === 'done' ? (
             <p className="rounded-xl bg-[#0c0c0c]/10 p-3 text-xs font-medium">
-              Factory reset sent — the camera should reboot into pairing mode shortly.
+              Factory reset sent - the camera should reboot into pairing mode shortly.
             </p>
           ) : resetState === 'confirming' ? (
             <div className="flex flex-col gap-2 rounded-xl bg-[#0c0c0c]/10 p-3">
               <span className="flex items-center gap-2 text-xs font-semibold uppercase">
                 <AlertTriangle className="size-4" />
-                Factory reset — wipes all config, irreversible
+                Factory reset - wipes all config, irreversible
               </span>
               <div className="flex gap-2">
                 <Button
@@ -217,7 +217,7 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
             resetState === 'error' && (
               <p className="rounded-xl bg-[#0c0c0c]/10 p-3 text-xs font-medium">
                 Reset failed: {resetError}. This only works while the camera is still actively
-                connected — if it's already dropped, this won't succeed; use the physical reset
+                connected - if it's already dropped, this won't succeed; use the physical reset
                 instead.
               </p>
             )

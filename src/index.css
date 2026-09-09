@@ -31,7 +31,7 @@
 }
 
 /* Same palette/type system as the fullstack-gate-sensor mobile app (its
-   src/index.css + src/lib/gatekeepTheme.ts) — one hero accent used for both
+   src/index.css + src/lib/gatekeepTheme.ts) - one hero accent used for both
    primary actions and alerts, Archivo/DM Mono, 0.85rem radius, hairline
    borders. That reference is dark-only; this app keeps both modes per
    project convention, so the dark values below are copied exactly and the
@@ -104,7 +104,7 @@
   height: 0;
 }
 
-/* Radar-style expanding rings behind the Bluetooth icon while scanning —
+/* Radar-style expanding rings behind the Bluetooth icon while scanning -
    three rings staggered via animation-delay utilities below. */
 @keyframes gcPulse {
   0% {
@@ -128,9 +128,9 @@
   animation-delay: 0.8s;
 }
 
-/* Tap-to-focus ring on the QR scanner — shrinks and fades where the user
+/* Tap-to-focus ring on the QR scanner - shrinks and fades where the user
    tapped, as visual confirmation the tap registered (not a guarantee the
-   camera actually refocused there — that part is best-effort, browser and
+   camera actually refocused there - that part is best-effort, browser and
    device dependent). */
 @keyframes focusRing {
   0% {

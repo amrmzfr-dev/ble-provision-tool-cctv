@@ -5,24 +5,24 @@ import { cn } from '@/lib/utils'
 
 interface StreamTapPanelProps {
   serial: string
-  /** Fixed height for the content box — same box for every phase, see the note below. */
+  /** Fixed height for the content box - same box for every phase, see the note below. */
   heightClassName?: string
 }
 
 /**
- * The stream-activity UI (status strip, log/status content, Stop/Start) —
+ * The stream-activity UI (status strip, log/status content, Stop/Start) -
  * used both by the full-screen StreamScreen and embedded inline on a
  * camera's detail page. See useStreamTap.ts for why this isn't a video
  * player.
  *
  * The outer shape (status strip height, content box height, button row
- * height) is IDENTICAL across every phase — default/waiting/connecting,
+ * height) is IDENTICAL across every phase - default/waiting/connecting,
  * live, stopped, and error. Every phase used to render a different-sized
  * block (an error banner, a centered spinner card, or the log box, each
  * with their own height, plus the button row only existing at all once
  * stats existed) so the whole card visibly resized as the stream moved
  * through its lifecycle. Now there is exactly one status strip, one content
- * box, and one button row, always — only what's drawn *inside* each of
+ * box, and one button row, always - only what's drawn *inside* each of
  * those three fixed slots changes.
  */
 export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPanelProps) {
@@ -39,7 +39,7 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
           {statusLabel}
         </span>
         <span className="font-mono text-xs text-muted-foreground">
-          {stats ? `${stats.chunks} chunks · ${(stats.bytes / 1024).toFixed(1)} KB` : '— chunks · — KB'}
+          {stats ? `${stats.chunks} chunks · ${(stats.bytes / 1024).toFixed(1)} KB` : '- chunks · - KB'}
         </span>
       </div>
 
@@ -82,7 +82,7 @@ export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPa
         is streaming live.
       </p>
 
-      {/* One button, not two side by side with one always invisible — it
+      {/* One button, not two side by side with one always invisible - it
           just changes what it does depending on phase. Only Stop and
           Start/Retry are ever mutually applicable, so there's never a case
           where two actions are needed at once. */}
