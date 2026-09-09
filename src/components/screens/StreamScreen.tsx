@@ -1,5 +1,4 @@
 import { AlertTriangle, Loader2, Radio, RotateCcw } from 'lucide-react'
-import mpegts from 'mpegts.js'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { adminGetDevice } from '@/lib/api/client'
@@ -7,32 +6,44 @@ import { ApiError, getAdminKey } from '@/lib/api/config'
 import { logEvent } from '@/lib/debugLog'
 
 const POLL_INTERVAL_MS = 3000
-const STALL_TIMEOUT_MS = 10000
+const SUMMARY_INTERVAL_MS = 1000
 
 interface StreamScreenProps {
   serial: string
   onBack: () => void
 }
 
-type Phase = 'waiting-online' | 'loading' | 'playing' | 'error'
+type Phase = 'waiting-online' | 'connecting' | 'streaming' | 'error'
+
+interface Stats {
+  chunks: number
+  bytes: number
+  startedAt: number
+  lastChunkAt: number | null
+}
 
 /**
- * Mirrors exactly how AndroidOpenDemo's DeviceDetailActivity ->
- * AdminStreamActivity plays a live camera: it never hardcodes or reuses a
- * stream UUID. It calls GET /api/admin/device/<serial> right before opening
- * the stream and uses whatever admin_stream_url comes back at that moment
- * (that endpoint checks stream_manager.loginIDs live, so an old/stale UUID
- * or a call made before login finished is a dead end even if the DB says
- * "connected"). Confirmed against the real backend: a fresh call here
- * returns a working URL even when a previous, separately-obtained UUID 404s
- * or 500s.
+ * Not a video player — the camera streams HEVC (H.265) on both main and sub
+ * streams (confirmed with ffprobe against a captured admin stream), and
+ * browsers' Media Source Extensions essentially never support HEVC. mpegts.js
+ * demuxed the container fine but the browser could never build a playable
+ * buffer from it, so it just buffered forever with no error — tried and
+ * ruled out, not a guess. The Android reference app avoids this entirely by
+ * using VLC's own software decoder (libvlc/FFmpeg), which has no browser
+ * codec-support ceiling; there's no web equivalent to that.
+ *
+ * What this screen proves instead — genuinely useful for a pairing-test
+ * tool — is that bytes are actually flowing end to end: browser -> this
+ * app's nginx -> cctv.czeros.tech -> the camera's live NetSDK session and
+ * back. It reads the raw HTTP stream directly and tallies chunks/bytes live,
+ * the same proof-of-life the backend's own log shows via
+ * "[STREAM_DATA] Received frame N (size: X bytes)".
  */
 export function StreamScreen({ serial, onBack }: StreamScreenProps) {
   const [phase, setPhase] = useState<Phase>('waiting-online')
   const [error, setError] = useState<string | null>(null)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const playerRef = useRef<ReturnType<typeof mpegts.createPlayer> | null>(null)
-  const cleanupRef = useRef<(() => void) | null>(null)
+  const [stats, setStats] = useState<Stats | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     if (phase !== 'waiting-online') return
@@ -46,7 +57,7 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
         logEvent('rx', `connected=${info.connected} admin_stream_url=${info.admin_stream_url}`)
 
         if (info.connected && info.admin_stream_url) {
-          setPhase('loading')
+          setPhase('connecting')
           return
         }
       } catch (err) {
@@ -64,16 +75,16 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
   }, [phase, serial])
 
   useEffect(() => {
-    if (phase !== 'loading') return
+    if (phase !== 'connecting') return
     let cancelled = false
+    const controller = new AbortController()
+    abortRef.current = controller
 
     const start = async () => {
       try {
-        // Re-fetch right here too, not just in the previous phase — this is
-        // the same "ask fresh, right before use" rule the timing bug taught
-        // us for wifi-configured. Any delay between "we saw connected" and
-        // "we opened the stream" is a place for the UUID/session to go stale.
-        logEvent('tx', `GET /admin/device/${serial} (fresh, right before stream open)`)
+        // Fresh, right before use — same rule as the wifi-configured timing
+        // bug taught us. A UUID/session seen a moment ago can already be gone.
+        logEvent('tx', `GET /admin/device/${serial} (fresh, right before opening the stream)`)
         const info = await adminGetDevice(serial)
         if (cancelled) return
 
@@ -85,107 +96,65 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
 
         const adminKey = getAdminKey()
         const url = new URL(info.admin_stream_url, window.location.origin)
-        // AndroidOpenDemo's DeviceDetailActivity.openCameraStream() builds its
-        // URL with format=ts, not flv — confirmed by reading its source. FLV
-        // (tried first here) loaded and downloaded real bytes over curl fine,
-        // but sat "loading" forever in the browser with no error: the Dahua
-        // backend's FLV muxing apparently isn't clean enough for MSE's strict
-        // appendBuffer to accept, which fails silently rather than raising an
-        // ERROR event. mpegts.js's own primary format is MPEG-TS, matching
-        // what the reference app actually uses.
         url.searchParams.set('format', 'ts')
         url.searchParams.set('channel', '0')
         url.searchParams.set('stream_type', '0')
         if (adminKey) url.searchParams.set('admin_key', adminKey)
 
-        if (!mpegts.isSupported()) {
-          setError('This browser cannot play the live stream (Media Source Extensions unsupported).')
-          setPhase('error')
-          return
-        }
-
-        if (!videoRef.current) {
-          // Should never happen now that <video> is always mounted, but
-          // load() throws an opaque IllegalStateException if this is skipped
-          // — fail loudly instead of silently calling load() unattached.
-          logEvent('error', 'video element ref not ready, cannot attach player')
-          setError('Internal error: video element not ready.')
-          setPhase('error')
-          return
-        }
-        const video = videoRef.current
-
-        const player = mpegts.createPlayer({ type: 'mpegts', isLive: true, url: url.toString() })
-        playerRef.current = player
-        player.attachMediaElement(video)
-
-        // Wire up everything that can tell us what's actually happening —
-        // previously the only log line was "Playing stream: ..." right after
-        // calling load()/play(), which says nothing about whether the
-        // browser is actually receiving/decoding frames. A stuck "loading"
-        // state with no error event (exactly what FLV did above) was
-        // otherwise invisible in the debug log.
-        player.on(mpegts.Events.ERROR, (errType, detail) => {
-          if (cancelled) return
-          logEvent('error', `mpegts ERROR: ${String(errType)} / ${String(detail)}`)
-          setError('The stream dropped or failed to load.')
-          setPhase('error')
-        })
-        player.on(mpegts.Events.MEDIA_INFO, (mediaInfo: unknown) => {
-          logEvent('rx', `mpegts MEDIA_INFO: ${JSON.stringify(mediaInfo)}`)
-        })
-        player.on(mpegts.Events.LOADING_COMPLETE, () => {
-          logEvent('info', 'mpegts LOADING_COMPLETE')
-        })
-
-        let stallTimer: ReturnType<typeof setTimeout> | undefined
-
-        const onLoadedMetadata = () => logEvent('info', 'video loadedmetadata')
-        const onCanPlay = () => logEvent('info', 'video canplay')
-        const onWaiting = () => logEvent('info', 'video waiting (buffering)')
-        const onStalled = () => logEvent('error', 'video stalled')
-        const onVideoError = () => logEvent('error', `video element error: ${video.error?.message ?? video.error?.code}`)
-        const onPlaying = () => {
-          if (cancelled) return
-          logEvent('success', 'video playing — first frame rendered')
-          clearTimeout(stallTimer)
-          setPhase('playing')
-        }
-        video.addEventListener('loadedmetadata', onLoadedMetadata)
-        video.addEventListener('canplay', onCanPlay)
-        video.addEventListener('waiting', onWaiting)
-        video.addEventListener('stalled', onStalled)
-        video.addEventListener('error', onVideoError)
-        video.addEventListener('playing', onPlaying)
-
-        stallTimer = setTimeout(() => {
-          if (cancelled) return
-          logEvent(
-            'error',
-            `No 'playing' event within ${STALL_TIMEOUT_MS}ms — stream loaded but the browser never rendered a frame (likely an unsupported codec or a muxing issue MSE rejected silently)`,
-          )
-          setError("The stream loaded but never started playing — likely a codec the browser can't decode.")
-          setPhase('error')
-        }, STALL_TIMEOUT_MS)
-
-        cleanupRef.current = () => {
-          clearTimeout(stallTimer)
-          video.removeEventListener('loadedmetadata', onLoadedMetadata)
-          video.removeEventListener('canplay', onCanPlay)
-          video.removeEventListener('waiting', onWaiting)
-          video.removeEventListener('stalled', onStalled)
-          video.removeEventListener('error', onVideoError)
-          video.removeEventListener('playing', onPlaying)
-          cleanupRef.current = null
-        }
-
-        logEvent('tx', `Opening player: ${url.pathname}?${url.searchParams.toString()}`)
-        player.load()
-        void player.play()
-      } catch (err) {
+        logEvent('tx', `Opening raw stream tap: ${url.pathname}?${url.searchParams.toString()}`)
+        const response = await fetch(url.toString(), { signal: controller.signal })
         if (cancelled) return
+        if (!response.ok || !response.body) {
+          logEvent('error', `Stream request failed: HTTP ${response.status}`)
+          setError(`Stream request failed: HTTP ${response.status}`)
+          setPhase('error')
+          return
+        }
+
+        const reader = response.body.getReader()
+        const startedAt = Date.now()
+        let chunks = 0
+        let bytes = 0
+        let lastChunkAt: number | null = null
+        setStats({ chunks, bytes, startedAt, lastChunkAt })
+        setPhase('streaming')
+        logEvent('success', 'First response received — reading live stream body')
+
+        const summaryTimer = setInterval(() => {
+          if (cancelled) return
+          const elapsed = (Date.now() - startedAt) / 1000
+          const kbps = elapsed > 0 ? bytes / 1024 / elapsed : 0
+          logEvent(
+            'info',
+            `Stream activity: ${chunks} chunks, ${(bytes / 1024).toFixed(1)} KB total, ${kbps.toFixed(1)} KB/s avg`,
+          )
+        }, SUMMARY_INTERVAL_MS)
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+              logEvent('info', 'Stream ended (camera stopped or connection closed)')
+              break
+            }
+            if (cancelled) break
+            chunks += 1
+            bytes += value.byteLength
+            lastChunkAt = Date.now()
+            setStats({ chunks, bytes, startedAt, lastChunkAt })
+          }
+        } finally {
+          clearInterval(summaryTimer)
+        }
+
+        if (!cancelled) {
+          setPhase('error')
+          setError('The stream ended.')
+        }
+      } catch (err) {
+        if (cancelled || controller.signal.aborted) return
         const message = err instanceof ApiError ? err.message : String(err)
-        logEvent('error', `Failed to start stream: ${message}`)
+        logEvent('error', `Stream tap failed: ${message}`)
         setError(message)
         setPhase('error')
       }
@@ -194,23 +163,14 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
     void start()
     return () => {
       cancelled = true
-      cleanupRef.current?.()
+      controller.abort()
     }
   }, [phase, serial])
 
-  useEffect(() => {
-    return () => {
-      cleanupRef.current?.()
-      playerRef.current?.destroy()
-      playerRef.current = null
-    }
-  }, [])
-
   const retry = () => {
-    cleanupRef.current?.()
-    playerRef.current?.destroy()
-    playerRef.current = null
+    abortRef.current?.abort()
     setError(null)
+    setStats(null)
     setPhase('waiting-online')
   }
 
@@ -221,58 +181,55 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
           Live view
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
-          Camera stream
+          Stream activity
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Serial <code className="font-mono font-medium text-foreground">{serial}</code>
         </p>
       </div>
 
-      <div className="relative flex flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
-        {/* Always mounted, even before we're playing — mpegts.js requires
-            attachMediaElement() to run before load(), which means the <video>
-            must already exist in the DOM by the time the 'loading' phase
-            effect runs. Rendering it only for phase === 'playing' left
-            videoRef.current null at that point (IllegalStateException:
-            HTMLMediaElement must be attached before load()!). */}
-        <video
-          ref={videoRef}
-          className="aspect-video w-full bg-black"
-          style={{ display: phase === 'playing' ? 'block' : 'none' }}
-          autoPlay
-          muted
-          playsInline
-          controls
-        />
-        {phase !== 'playing' && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-5 text-center">
-            {phase === 'error' ? (
-              <>
-                <AlertTriangle className="size-8 text-destructive" strokeWidth={1.5} />
-                <p className="text-sm font-semibold">Couldn't play the stream</p>
-                <p className="text-xs text-muted-foreground">{error}</p>
-              </>
-            ) : (
-              <>
-                <Loader2 className="size-8 animate-spin text-primary" />
-                <p className="text-sm font-semibold">
-                  {phase === 'waiting-online'
-                    ? 'Waiting for the camera to be online…'
-                    : 'Opening the stream…'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Checking <code className="font-mono">/admin/device/{serial}</code> fresh, same as
-                  the reference Android app does right before it opens a stream.
-                </p>
-              </>
-            )}
-          </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-5 text-center">
+        {phase === 'error' ? (
+          <>
+            <AlertTriangle className="size-8 text-destructive" strokeWidth={1.5} />
+            <p className="text-sm font-semibold">Couldn't confirm the stream</p>
+            <p className="text-xs text-muted-foreground">{error}</p>
+          </>
+        ) : phase === 'streaming' && stats ? (
+          <>
+            <div className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-destructive text-primary-foreground">
+              <span className="absolute inset-0 rounded-2xl bg-primary/50 animate-gc-pulse" />
+              <Radio className="relative size-8" />
+            </div>
+            <p className="text-sm font-semibold">Live bytes flowing from the camera</p>
+            <div className="grid w-full grid-cols-2 gap-2 text-left">
+              <div className="rounded-xl bg-muted p-3">
+                <span className="block font-mono text-[10px] uppercase text-muted-foreground">Chunks</span>
+                <span className="font-mono text-lg font-bold">{stats.chunks}</span>
+              </div>
+              <div className="rounded-xl bg-muted p-3">
+                <span className="block font-mono text-[10px] uppercase text-muted-foreground">Received</span>
+                <span className="font-mono text-lg font-bold">{(stats.bytes / 1024).toFixed(1)} KB</span>
+              </div>
+            </div>
+            <p className="max-w-[32ch] text-xs text-muted-foreground">
+              This confirms the full path — browser → backend → the camera's live session — is
+              working. Video preview isn't shown: this camera streams H.265, which browsers can't
+              decode; see the debug log for details.
+            </p>
+          </>
+        ) : (
+          <>
+            <Loader2 className="size-8 animate-spin text-primary" />
+            <p className="text-sm font-semibold">
+              {phase === 'waiting-online' ? 'Waiting for the camera to be online…' : 'Opening the stream…'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Checking <code className="font-mono">/admin/device/{serial}</code> fresh, same as the
+              reference Android app does right before it opens a stream.
+            </p>
+          </>
         )}
-      </div>
-
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Radio className="size-3.5" />
-        Format: MPEG-TS over Media Source Extensions, via mpegts.js — matches AndroidOpenDemo
       </div>
 
       <div className="flex gap-2">

@@ -45,14 +45,37 @@ typing the serial in) as step 1, before it will search for the device over Bluet
       session for that device, not a fresh connection made on demand. If the camera's already
       dropped (or its registration got poisoned by the wifi-configured bug below), this fails with
       `device_info_incomplete`/`device_not_connected` and the physical reset is the only option.
-- [x] Phase 6 (not in the original plan, added per a later ask) — play the live stream after
-      pairing (`StreamScreen.tsx`, via `mpegts.js` — browsers can't play raw FLV natively). Modeled
-      directly on `AndroidOpenDemo`'s `DeviceDetailActivity` → `AdminStreamActivity`: never cache or
-      reconstruct a stream UUID — call `GET /api/admin/device/<serial>` fresh right before opening
-      the stream and use whatever `admin_stream_url` comes back at that moment, same as the demo
-      app's `openCameraStream()` does with `mStreamUrlText`. User-binding (`register_credentials`,
-      stream tokens) is the production client app's job, not this admin-key-driven testing tool —
-      left unwired on purpose.
+- [x] Phase 6 (not in the original plan, added per a later ask) — confirm the camera is actually
+      streaming after pairing (`StreamScreen.tsx`). Not video playback — see "Why there's no video
+      preview" below. It follows the same UUID-freshness rule as `AndroidOpenDemo`'s
+      `DeviceDetailActivity` → `AdminStreamActivity`: never cache or reconstruct a stream UUID, call
+      `GET /api/admin/device/<serial>` fresh right before opening the stream and use whatever
+      `admin_stream_url` comes back at that moment. User-binding (`register_credentials`, stream
+      tokens) is the production client app's job, not this admin-key-driven testing tool — left
+      unwired on purpose.
+
+### Why there's no video preview — the camera streams H.265
+
+`StreamScreen.tsx` tried actual playback first (`mpegts.js`, an MSE-based player), first with
+`format=flv` then `format=ts` (matching `AndroidOpenDemo`'s `openCameraStream()`, which builds its
+URL with `format=ts`). Both sat in an infinite "buffering" state with no error. Captured a stream
+with `curl` and inspected it with `ffprobe` directly: **both the main and sub streams
+(`stream_type=0` and `1`) are HEVC (H.265)**, 2880×1620. Browsers' Media Source Extensions
+essentially never support HEVC decoding (a handful of Safari builds aside) — the demuxer parses the
+container fine, but the browser can never build a playable buffer from it, which is exactly why it
+buffered forever instead of raising a decode error.
+
+This is why the Android app can play it and a web page can't: **VLC does its own software
+decoding** (bundled libvlc/FFmpeg), independent of whatever the browser natively supports. There's
+no equivalent for a `<video>` tag — it's hard-limited to the host browser's codec support. Fixing
+this for real means either reconfiguring the camera to encode H.264, or a server-side HEVC→H.264
+transcode — both out of scope for this frontend.
+
+What `StreamScreen.tsx` does instead, and the reason it's still useful for a *pairing* test tool:
+it opens the raw HTTP stream with `fetch()` and tallies chunks/bytes live as they arrive, the same
+proof-of-life the backend's own log shows via `[STREAM_DATA] Received frame N (size: X bytes)`.
+That confirms the whole path — browser → this app's nginx → `cctv.czeros.tech` → the camera's live
+NetSDK session — actually works, without needing to solve browser video decoding.
 
 ### Streaming crash chased down — was stale test state, not a code bug
 
