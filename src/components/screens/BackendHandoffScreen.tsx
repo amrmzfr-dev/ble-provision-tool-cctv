@@ -151,6 +151,14 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
               </p>
             )}
           </div>
+          {phase === 'waiting' && (
+            <p className="max-w-[30ch] text-justify text-xs text-muted-foreground">
+              You can also check the camera itself: while it's still trying to join the WiFi, its
+              LED keeps blinking green fast and continuously, same as pairing mode. Once it's
+              actually connected, that fast blinking stops — the LED mostly stays solid green, with
+              just a brief blink every couple of minutes instead.
+            </p>
+          )}
           <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground">
             Cancel and go back home
           </Button>
