@@ -34,7 +34,7 @@ export function LoginScreen() {
 
   return (
     <div className="flex min-h-[560px] flex-1 flex-col items-center justify-center gap-6">
-      <div className="glow-primary flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-destructive text-primary-foreground">
+      <div className="glow-primary flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
         <Bluetooth className="size-7" />
       </div>
       <div className="text-center">

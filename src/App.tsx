@@ -33,7 +33,7 @@ export default function App() {
       <div className={`relative mx-auto flex max-w-md flex-col gap-6 px-5 py-10 ${authToken ? 'pb-24' : ''}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="glow-primary flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-destructive text-primary-foreground">
+            <div className="glow-primary flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
               <Bluetooth className="size-6" />
             </div>
             <div>

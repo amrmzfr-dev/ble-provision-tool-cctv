@@ -24,7 +24,7 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-5 text-center">
-        <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-destructive text-primary-foreground">
+        <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
           <Bluetooth className="size-8" />
         </div>
         <p className="max-w-[26ch] text-justify text-sm text-muted-foreground">
