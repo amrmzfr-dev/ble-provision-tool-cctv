@@ -162,8 +162,11 @@ export function MyCamerasScreen({ onBack, onOpenStream }: MyCamerasScreenProps) 
                       className="flex-1"
                       disabled={rowBusy !== null}
                       onClick={() => void refreshStatus(camera.serial)}
+                      aria-label="Refresh status"
+                      title="Re-check this camera's live status"
                     >
                       <RefreshCw className={rowBusy === 'refreshing' ? 'animate-spin' : ''} />
+                      Refresh
                     </Button>
                     <Button
                       variant="outline"
