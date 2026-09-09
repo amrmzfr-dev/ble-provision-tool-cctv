@@ -218,8 +218,20 @@ export function adminDeleteUser(username: string): Promise<{ success: true }> {
 
 // ---- Admin — Device Management ----
 
-export function adminResetDevice(serial: string): Promise<{ success: true }> {
-  return apiFetch(`/admin/device/${serial}/reset`, { method: 'POST', auth: 'admin' })
+/**
+ * Only actually works while the camera is currently connected — the SDK
+ * reset command routes through the backend's live session for this device
+ * (registered_devices[serial].ip/port), not a fresh connection made on
+ * demand. Confirmed via api_server_listen_mode.py: no ip/port (or no
+ * loginID) means this fails with device_info_incomplete /
+ * device_not_connected regardless of factory_reset/confirm.
+ */
+export function adminResetDevice(serial: string, factoryReset = true): Promise<{ success: true }> {
+  return apiFetch(`/admin/device/${serial}/reset`, {
+    method: 'POST',
+    auth: 'admin',
+    body: { factory_reset: factoryReset, confirm: true },
+  })
 }
 
 export function adminSyncDeviceTime(serial: string): Promise<{ success: true }> {

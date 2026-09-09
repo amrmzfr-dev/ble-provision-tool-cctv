@@ -32,6 +32,13 @@ typing the serial in) as step 1, before it will search for the device over Bluet
 - [x] Phase 5 — call the backend provisioning API, poll status (`BackendHandoffScreen.tsx`,
       `PairingScreen.tsx`). See "wifi-configured timing" below — this used to be called after the
       BLE join result, which turned out to trigger a real backend bug.
+- [x] Factory reset from the "Camera online" screen (`adminResetDevice` in `src/lib/api/client.ts`,
+      wired into `BackendHandoffScreen.tsx`) — needed so a unit can go from "just tested" to
+      "clean for redeployment" without physical access every time. **Only works while the camera
+      is still actively connected** — the SDK reset command routes through the backend's live
+      session for that device, not a fresh connection made on demand. If the camera's already
+      dropped (or its registration got poisoned by the wifi-configured bug below), this fails with
+      `device_info_incomplete`/`device_not_connected` and the physical reset is the only option.
 - [ ] Phase 6 (not in the original plan, added per a later ask) — bind a user to the device
       (`register_credentials`) and actually play the live stream (needs a FLV-capable player like
       mpegts.js — browsers can't play raw FLV natively)

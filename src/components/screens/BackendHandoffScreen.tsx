@@ -1,8 +1,8 @@
-import { CheckCircle2, KeyRound, Loader2, RotateCcw, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, KeyRound, Loader2, RotateCcw, Trash2, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getDeviceStatus, postWifiConfigured } from '@/lib/api/client'
+import { adminResetDevice, getDeviceStatus, postWifiConfigured } from '@/lib/api/client'
 import { ApiError, getAdminKey, setAdminKey } from '@/lib/api/config'
 import type { DeviceStatus } from '@/lib/api/types'
 import { logEvent } from '@/lib/debugLog'
@@ -29,6 +29,8 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pollStartRef = useRef<number | null>(alreadyNotified ? Date.now() : null)
+  const [resetState, setResetState] = useState<'idle' | 'confirming' | 'resetting' | 'done' | 'error'>('idle')
+  const [resetError, setResetError] = useState<string | null>(null)
 
   useEffect(() => {
     if (phase !== 'submitting') return
@@ -102,6 +104,25 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
     }
   }, [phase, serial])
 
+  const handleReset = async () => {
+    setResetState('resetting')
+    setResetError(null)
+    logEvent('tx', `POST /admin/device/${serial}/reset (factory_reset=true)`)
+    try {
+      await adminResetDevice(serial, true)
+      logEvent('success', `Factory reset command sent for ${serial}`)
+      setResetState('done')
+    } catch (err) {
+      // Only works while the camera's still connected — see the doc comment
+      // on adminResetDevice. A stale registration (ip/port never set, or the
+      // camera already dropped) fails here, not a permissions problem.
+      const message = err instanceof ApiError ? err.message : String(err)
+      logEvent('error', `Reset failed: ${message}`)
+      setResetError(message)
+      setResetState('error')
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-5">
       <div>
@@ -172,10 +193,72 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
             <span className="opacity-70">Serial: </span>
             <code className="font-mono font-medium">{serial}</code>
           </p>
+
+          {resetState === 'done' ? (
+            <p className="rounded-xl bg-[#0c0c0c]/10 p-3 text-xs font-medium">
+              Factory reset sent — the camera should reboot into pairing mode shortly.
+            </p>
+          ) : resetState === 'confirming' ? (
+            <div className="flex flex-col gap-2 rounded-xl bg-[#0c0c0c]/10 p-3">
+              <span className="flex items-center gap-2 text-xs font-semibold uppercase">
+                <AlertTriangle className="size-4" />
+                Factory reset — wipes all config, irreversible
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 border-current/30 bg-transparent"
+                  onClick={() => setResetState('idle')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => void handleReset()}
+                >
+                  Yes, reset it
+                </Button>
+              </div>
+            </div>
+          ) : resetState === 'resetting' ? (
+            <div className="flex items-center gap-2 rounded-xl bg-[#0c0c0c]/10 p-3 text-xs font-medium">
+              <Loader2 className="size-4 animate-spin" />
+              Sending reset command…
+            </div>
+          ) : (
+            resetState === 'error' && (
+              <p className="rounded-xl bg-[#0c0c0c]/10 p-3 text-xs font-medium">
+                Reset failed: {resetError}. This only works while the camera is still actively
+                connected — if it's already dropped, this won't succeed; use the physical reset
+                instead.
+              </p>
+            )
+          )}
+
           <div className="flex-1" />
-          <Button variant="outline" onClick={onDone} className="border-current/30 bg-transparent">
-            Done
-          </Button>
+
+          <div className="flex gap-2">
+            {resetState === 'idle' && (
+              <Button
+                variant="outline"
+                className="flex-1 border-current/30 bg-transparent"
+                onClick={() => setResetState('confirming')}
+              >
+                <Trash2 />
+                Reset for redeployment
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={onDone}
+              className={resetState === 'idle' ? 'border-current/30 bg-transparent' : 'flex-1 border-current/30 bg-transparent'}
+            >
+              Done
+            </Button>
+          </div>
         </div>
       )}
 
