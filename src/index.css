@@ -104,17 +104,38 @@
   height: 0;
 }
 
-/* Pulse ring behind the Bluetooth icon while a scan is in progress. */
+/* Radar-style expanding rings behind the Bluetooth icon while scanning —
+   three rings staggered via animation-delay utilities below. */
 @keyframes gcPulse {
   0% {
     transform: scale(1);
-    opacity: 0.5;
+    opacity: 0.45;
   }
   100% {
-    transform: scale(1.35);
+    transform: scale(2.2);
     opacity: 0;
   }
 }
 .animate-gc-pulse {
-  animation: gcPulse 1.1s ease-out infinite;
+  animation: gcPulse 1.6s ease-out infinite;
+}
+.animate-gc-pulse-delay-1 {
+  animation: gcPulse 1.6s ease-out infinite;
+  animation-delay: 0.4s;
+}
+.animate-gc-pulse-delay-2 {
+  animation: gcPulse 1.6s ease-out infinite;
+  animation-delay: 0.8s;
+}
+
+/* Soft glow used behind hero icon badges and the result state card. */
+.glow-primary {
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 30%, transparent),
+    0 8px 24px -8px color-mix(in oklch, var(--primary) 55%, transparent);
+}
+.glow-lime {
+  box-shadow: 0 8px 28px -8px color-mix(in oklch, var(--lime) 60%, transparent);
+}
+.glow-destructive {
+  box-shadow: 0 8px 28px -8px color-mix(in oklch, var(--destructive) 60%, transparent);
 }
