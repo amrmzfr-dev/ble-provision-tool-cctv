@@ -38,11 +38,16 @@ typing the serial in) as step 1, before it will search for the device over Bluet
       (`register_credentials`) and actually play the live stream (needs a FLV-capable player like
       mpegts.js — browsers can't play raw FLV natively)
 
-**None of Phases 2-5 have touched a real camera yet.** They're built against the protocol recovered
-by decompiling `bluetoothhelper-release.aar` (see the plan doc), which is the best reconstruction
-available without a hardware SDK reference, but real-device testing will surface things static
-analysis couldn't — timing, exact byte quirks, whichever of the two SN/SC parsing guesses above is
-actually right.
+**First real-hardware result:** connects over Bluetooth fine, but the first write (sending the RSA
+public key) failed with `GATT operation not permitted`. Fixed — `fff1` only accepts
+write-without-response, not write-with-response like the code originally assumed
+(`src/lib/ble/transport.ts`). Makes sense in hindsight: the protocol already has its own
+application-level acks (`00 8C`, `01 8E`, ...), so it never needed the ATT layer's too. Added a
+small pacing delay between fragments since write-without-response doesn't wait for the peripheral
+to actually receive each one before resolving, unlike write-with-response.
+
+Everything past that point (SN/SC parsing, the `wifi-configured` timing call) is still unconfirmed
+against real hardware — this was only the very first BLE write in the sequence.
 
 ## Running it
 

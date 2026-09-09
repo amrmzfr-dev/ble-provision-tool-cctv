@@ -1,6 +1,10 @@
 import { GATT_NOTIFY_CHARACTERISTIC_UUID, GATT_SERVICE_UUID, GATT_WRITE_CHARACTERISTIC_UUID } from './constants'
 import { fragmentFrame, FrameAssembler, type AssembledFrame } from './framing'
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 /**
  * Thin GATT wrapper. Deliberately protocol-ignorant — it just moves bytes
  * over fff1 (write) and fff2 (notify), fragmenting/reassembling per the
@@ -67,10 +71,21 @@ export class BleTransport {
   private async writeFragments(fragments: Uint8Array[]): Promise<void> {
     if (!this.writeChar) throw new Error('Not connected')
     for (const fragment of fragments) {
+      // Confirmed against real hardware: fff1 only accepts write-without-
+      // response (write-with-response threw "GATT operation not permitted").
+      // Makes sense in hindsight — the protocol already has its own
+      // application-level acks (00 8C, 01 8E, ...), so it doesn't need the
+      // ATT layer's too. writeValueWithoutResponse()'s promise resolves once
+      // the write is locally queued, not once the peripheral's received it,
+      // so a small pacing delay between fragments avoids outrunning
+      // whatever buffer the camera's BLE stack has for a multi-fragment
+      // message (the 97-byte WiFi payload is 7 fragments back to back).
+      //
       // TS 5.7+'s stricter typed-array generics mean a plain Uint8Array no
       // longer satisfies BufferSource without help — safe here since this
       // is always backed by a real, non-shared ArrayBuffer at runtime.
-      await this.writeChar.writeValueWithResponse(fragment as BufferSource)
+      await this.writeChar.writeValueWithoutResponse(fragment as BufferSource)
+      await sleep(15)
     }
   }
 
