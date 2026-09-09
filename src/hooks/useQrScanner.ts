@@ -59,10 +59,31 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
   const start = useCallback(async () => {
     setError(null)
     try {
+      // Small QR codes need real resolution to resolve — the default
+      // getUserMedia stream is often ~640x480, nowhere near enough detail
+      // for a small code at arm's length. `focusMode` isn't in TypeScript's
+      // DOM types (still an experimental Image Capture extension) but
+      // Chrome on Android honors it; unsupported constraints are just
+      // ignored rather than erroring, so this is safe everywhere.
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          ...({ focusMode: 'continuous' } as MediaTrackConstraints),
+        },
       })
       streamRef.current = stream
+
+      const [track] = stream.getVideoTracks()
+      try {
+        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet] })
+      } catch {
+        // Not supported on this device/browser — the initial getUserMedia
+        // constraint above is the fallback attempt, and plain autofocus is
+        // still better than nothing if neither takes.
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
