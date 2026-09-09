@@ -64,13 +64,37 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
           <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
             Scan the camera's serial
           </h2>
-          <HelpTip title="Which QR code?" imageSrc="/help/qr-label.jpg" imageAlt="The charger's label, showing a small QR code near the Perodua logo and a larger QR code lower down next to the Charging Pile ID">
-            <p>
-              There are <strong className="text-foreground">two</strong> QR codes on the charger's
-              label. Scan the <strong className="text-foreground">small</strong> one near the
-              Perodua logo at the top — <strong className="text-foreground">not</strong> the larger
-              one further down next to the Charging Pile ID.
-            </p>
+          <HelpTip title="Before you scan">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-bold uppercase text-foreground">1. Scan the small QR code</span>
+                <img
+                  src="/help/qr-label.jpg"
+                  alt="The charger's label, showing a small QR code near the Perodua logo and a larger QR code lower down next to the Charging Pile ID"
+                  className="w-full rounded-xl border border-border"
+                />
+                <p>
+                  There are <strong className="text-foreground">two</strong> QR codes on the
+                  charger's label. Scan the <strong className="text-foreground">small</strong> one
+                  near the Perodua logo at the top — <strong className="text-foreground">not</strong>{' '}
+                  the larger one further down next to the Charging Pile ID.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-bold uppercase text-foreground">2. Camera must be blinking green</span>
+                <img
+                  src="/help/pairing-led.jpg"
+                  alt="The camera's status LED, located just below its lens, blinking green"
+                  className="w-full rounded-xl border border-border"
+                />
+                <p>
+                  The camera needs to already be in pairing mode before the next step can find it
+                  — look for the small LED just below its lens, blinking{' '}
+                  <strong className="text-foreground">green quickly</strong>. If it isn't blinking,
+                  it may need a power cycle or a physical reset first.
+                </p>
+              </div>
+            </div>
           </HelpTip>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
