@@ -7,6 +7,7 @@ import { ApiError, getAdminKey } from '@/lib/api/config'
 import { logEvent } from '@/lib/debugLog'
 
 const POLL_INTERVAL_MS = 3000
+const STALL_TIMEOUT_MS = 10000
 
 interface StreamScreenProps {
   serial: string
@@ -31,6 +32,7 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
   const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const playerRef = useRef<ReturnType<typeof mpegts.createPlayer> | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     if (phase !== 'waiting-online') return
@@ -83,7 +85,15 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
 
         const adminKey = getAdminKey()
         const url = new URL(info.admin_stream_url, window.location.origin)
-        url.searchParams.set('format', 'flv')
+        // AndroidOpenDemo's DeviceDetailActivity.openCameraStream() builds its
+        // URL with format=ts, not flv — confirmed by reading its source. FLV
+        // (tried first here) loaded and downloaded real bytes over curl fine,
+        // but sat "loading" forever in the browser with no error: the Dahua
+        // backend's FLV muxing apparently isn't clean enough for MSE's strict
+        // appendBuffer to accept, which fails silently rather than raising an
+        // ERROR event. mpegts.js's own primary format is MPEG-TS, matching
+        // what the reference app actually uses.
+        url.searchParams.set('format', 'ts')
         url.searchParams.set('channel', '0')
         url.searchParams.set('stream_type', '0')
         if (adminKey) url.searchParams.set('admin_key', adminKey)
@@ -103,20 +113,74 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
           setPhase('error')
           return
         }
+        const video = videoRef.current
 
-        const player = mpegts.createPlayer({ type: 'flv', isLive: true, url: url.toString() })
+        const player = mpegts.createPlayer({ type: 'mpegts', isLive: true, url: url.toString() })
         playerRef.current = player
-        player.attachMediaElement(videoRef.current)
-        player.on(mpegts.Events.ERROR, (_type, detail) => {
+
+        // Wire up everything that can tell us what's actually happening —
+        // previously the only log line was "Playing stream: ..." right after
+        // calling load()/play(), which says nothing about whether the
+        // browser is actually receiving/decoding frames. A stuck "loading"
+        // state with no error event (exactly what FLV did above) was
+        // otherwise invisible in the debug log.
+        player.on(mpegts.Events.ERROR, (errType, detail) => {
           if (cancelled) return
-          logEvent('error', `Stream player error: ${String(detail)}`)
+          logEvent('error', `mpegts ERROR: ${String(errType)} / ${String(detail)}`)
           setError('The stream dropped or failed to load.')
           setPhase('error')
         })
+        player.on(mpegts.Events.MEDIA_INFO, (mediaInfo: unknown) => {
+          logEvent('rx', `mpegts MEDIA_INFO: ${JSON.stringify(mediaInfo)}`)
+        })
+        player.on(mpegts.Events.LOADING_COMPLETE, () => {
+          logEvent('info', 'mpegts LOADING_COMPLETE')
+        })
+
+        let stallTimer: ReturnType<typeof setTimeout> | undefined
+
+        const onLoadedMetadata = () => logEvent('info', 'video loadedmetadata')
+        const onCanPlay = () => logEvent('info', 'video canplay')
+        const onWaiting = () => logEvent('info', 'video waiting (buffering)')
+        const onStalled = () => logEvent('error', 'video stalled')
+        const onVideoError = () => logEvent('error', `video element error: ${video.error?.message ?? video.error?.code}`)
+        const onPlaying = () => {
+          if (cancelled) return
+          logEvent('success', 'video playing — first frame rendered')
+          clearTimeout(stallTimer)
+          setPhase('playing')
+        }
+        video.addEventListener('loadedmetadata', onLoadedMetadata)
+        video.addEventListener('canplay', onCanPlay)
+        video.addEventListener('waiting', onWaiting)
+        video.addEventListener('stalled', onStalled)
+        video.addEventListener('error', onVideoError)
+        video.addEventListener('playing', onPlaying)
+
+        stallTimer = setTimeout(() => {
+          if (cancelled) return
+          logEvent(
+            'error',
+            `No 'playing' event within ${STALL_TIMEOUT_MS}ms — stream loaded but the browser never rendered a frame (likely an unsupported codec or a muxing issue MSE rejected silently)`,
+          )
+          setError("The stream loaded but never started playing — likely a codec the browser can't decode.")
+          setPhase('error')
+        }, STALL_TIMEOUT_MS)
+
+        cleanupRef.current = () => {
+          clearTimeout(stallTimer)
+          video.removeEventListener('loadedmetadata', onLoadedMetadata)
+          video.removeEventListener('canplay', onCanPlay)
+          video.removeEventListener('waiting', onWaiting)
+          video.removeEventListener('stalled', onStalled)
+          video.removeEventListener('error', onVideoError)
+          video.removeEventListener('playing', onPlaying)
+          cleanupRef.current = null
+        }
+
+        logEvent('tx', `Opening player: ${url.pathname}?${url.searchParams.toString()}`)
         player.load()
         void player.play()
-        logEvent('success', `Playing stream: ${url.pathname}`)
-        setPhase('playing')
       } catch (err) {
         if (cancelled) return
         const message = err instanceof ApiError ? err.message : String(err)
@@ -129,17 +193,20 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
     void start()
     return () => {
       cancelled = true
+      cleanupRef.current?.()
     }
   }, [phase, serial])
 
   useEffect(() => {
     return () => {
+      cleanupRef.current?.()
       playerRef.current?.destroy()
       playerRef.current = null
     }
   }, [])
 
   const retry = () => {
+    cleanupRef.current?.()
     playerRef.current?.destroy()
     playerRef.current = null
     setError(null)
@@ -204,7 +271,7 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
 
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Radio className="size-3.5" />
-        Format: FLV over Media Source Extensions, via mpegts.js
+        Format: MPEG-TS over Media Source Extensions, via mpegts.js — matches AndroidOpenDemo
       </div>
 
       <div className="flex gap-2">
