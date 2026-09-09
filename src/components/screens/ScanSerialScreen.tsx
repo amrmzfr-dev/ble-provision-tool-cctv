@@ -1,5 +1,6 @@
 import { Keyboard, QrCode, ScanLine } from 'lucide-react'
 import { useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { HelpTip } from '@/components/HelpTip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useQrScanner } from '@/hooks/useQrScanner'
@@ -59,9 +60,19 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
           Step 1 of 5
         </span>
-        <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
-          Scan the camera's serial
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
+            Scan the camera's serial
+          </h2>
+          <HelpTip title="Which QR code?" imageSrc="/help/qr-label.jpg" imageAlt="The charger's label, showing a small QR code near the Perodua logo and a larger QR code lower down next to the Charging Pile ID">
+            <p>
+              There are <strong className="text-foreground">two</strong> QR codes on the charger's
+              label. Scan the <strong className="text-foreground">small</strong> one near the
+              Perodua logo at the top — <strong className="text-foreground">not</strong> the larger
+              one further down next to the Charging Pile ID.
+            </p>
+          </HelpTip>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Find the QR sticker on the camera, then scan it or type it in.
         </p>

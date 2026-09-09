@@ -118,7 +118,7 @@ export function DeviceScanner() {
             serial={serial}
             scanning={scanning}
             error={error}
-            onScan={() => scan('all-devices')}
+            onScan={(mode) => scan(mode)}
           />
         )}
 
