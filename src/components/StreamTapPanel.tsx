@@ -9,6 +9,8 @@ interface StreamTapPanelProps {
   heightClassName?: string
   /** False shows an idle "ready to test" state with a Start button instead of connecting immediately on mount. */
   autoStart?: boolean
+  /** Whether the camera is actually connected right now, per whatever already checked it (e.g. CameraDetailScreen's own status badge) - only ever consulted in the idle phase, so autoStart callers (which never reach idle) can skip it. The badge says "Ready" only when this is true, "Can't stream" otherwise (unknown/loading counts as not-ready, not a guess). */
+  isConnected?: boolean
 }
 
 /**
@@ -27,14 +29,21 @@ interface StreamTapPanelProps {
  * and one button row, always - only what's drawn *inside* each of those
  * three fixed slots changes.
  */
-export function StreamTapPanel({ serial, heightClassName = 'h-72', autoStart = true }: StreamTapPanelProps) {
+export function StreamTapPanel({
+  serial,
+  heightClassName = 'h-72',
+  autoStart = true,
+  isConnected = true,
+}: StreamTapPanelProps) {
   const { phase, error, stats, lines, logBoxRef, isLive, stop, restart, activate } = useStreamTap(serial, {
     autoStart,
   })
 
   const statusLabel =
     phase === 'idle'
-      ? 'Ready'
+      ? isConnected
+        ? 'Ready'
+        : "Can't stream"
       : phase === 'error'
         ? 'Error'
         : phase === 'stopped'
