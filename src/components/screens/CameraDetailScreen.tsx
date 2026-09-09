@@ -107,8 +107,8 @@ export function CameraDetailScreen({ serial, onBack }: CameraDetailScreenProps) 
         <div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-border bg-card p-3">
           <p className="text-justify font-mono text-xs text-muted-foreground">
             Wipes the camera's settings and puts it back into pairing mode.{' '}
-            <strong className="text-foreground">Only works while connected</strong> — if it's
-            offline, reset it physically instead.
+            <strong className="text-foreground">Make sure the camera is connected first</strong> —
+            this won't work otherwise.
           </p>
 
           {resetState === 'done' ? (
