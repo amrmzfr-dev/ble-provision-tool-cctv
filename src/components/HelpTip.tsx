@@ -29,9 +29,9 @@ export function HelpTip({ title, imageSrc, imageAlt, children }: HelpTipProps) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Help: ${title}`}
-        className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground"
       >
-        <HelpCircle className="size-3.5" />
+        <HelpCircle className="size-5" />
       </button>
 
       {open && (
