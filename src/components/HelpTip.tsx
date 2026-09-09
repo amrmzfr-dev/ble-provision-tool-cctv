@@ -36,11 +36,16 @@ export function HelpTip({ title, imageSrc, imageAlt, children }: HelpTipProps) {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           onClick={() => setOpen(false)}
         >
           <div
-            className="animate-in flex h-[70svh] w-full max-w-md flex-col gap-3 rounded-2xl border border-border bg-card p-5"
+            // min(70svh, 32rem) — 70% of the actual device viewport on a
+            // typical phone, but capped so it doesn't turn into an
+            // absurdly tall panel on a bigger screen/tablet. svh already
+            // reflects each device's real screen height, so this adapts
+            // on its own rather than needing per-breakpoint overrides.
+            className="animate-in flex h-[min(70svh,32rem)] w-full max-w-md flex-col gap-3 rounded-2xl border border-border bg-card p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex shrink-0 items-center justify-between">
