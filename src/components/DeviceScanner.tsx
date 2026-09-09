@@ -1,5 +1,5 @@
 import { ChevronLeft } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { BackendHandoffScreen } from '@/components/screens/BackendHandoffScreen'
 import { FindDeviceScreen } from '@/components/screens/FindDeviceScreen'
@@ -16,8 +16,35 @@ import { cn } from '@/lib/utils'
 type Step = 'scan' | 'find' | 'wifi' | 'pairing' | 'backend' | 'stream'
 const STEPS: Step[] = ['scan', 'find', 'wifi', 'pairing', 'backend']
 
-function StepDots({ step }: { step: Step }) {
-  const index = STEPS.indexOf(step)
+// Short copy for the preview cards shown while swiping ahead of (or back
+// through) real progress - the same idea each screen's own header already
+// carries, just standalone here since a not-yet-reached step (e.g.
+// 'pairing' with no device found yet) can't safely mount its real
+// functional component at all.
+const STEP_INFO: Record<Exclude<Step, 'stream'>, { title: string; description: string }> = {
+  scan: {
+    title: "Scan the camera's serial",
+    description: 'Find the QR sticker on the camera, then scan it or type it in.',
+  },
+  find: {
+    title: 'Find it over Bluetooth',
+    description: "Your browser's own device picker, pre-filtered to just this camera's kind of device.",
+  },
+  wifi: {
+    title: 'WiFi for the camera',
+    description: "Enter the WiFi network's name and password so the camera can join it.",
+  },
+  pairing: {
+    title: 'Pairing',
+    description: 'Sends the WiFi details to the camera over Bluetooth and waits for it to acknowledge them.',
+  },
+  backend: {
+    title: 'Connecting to the server',
+    description: "Tells the backend WiFi is set, then waits for the camera to actually come online.",
+  },
+}
+
+function StepDots({ activeIndex }: { activeIndex: number }) {
   return (
     <div className="flex items-center gap-1">
       {STEPS.map((s, i) => (
@@ -25,7 +52,7 @@ function StepDots({ step }: { step: Step }) {
           key={s}
           className={cn(
             'h-1.5 rounded-full transition-all',
-            i === index ? 'w-4 bg-primary' : 'w-1.5 bg-border',
+            i === activeIndex ? 'w-4 bg-primary' : 'w-1.5 bg-border',
           )}
         />
       ))}
@@ -45,22 +72,25 @@ export function DeviceScanner() {
   const [wifiPassword, setWifiPassword] = useState('')
   const [wifiError, setWifiError] = useState<string | null>(null)
   const [backendNotified, setBackendNotified] = useState(initialSession?.backendNotified ?? false)
-  const [reminder, setReminder] = useState<string | null>(null)
-  const reminderTimer = useRef<number | null>(null)
   const { device, error, scanning, scan, reset } = useBleScan()
 
-  // Fixed-position, auto-dismissing - never affects the card's height. Only
-  // relevant on scan/find/wifi: each of those only ever advances because its
-  // real prerequisite (a scanned serial, a found device, a submitted WiFi
-  // form) already fired, which auto-navigates away immediately. So being
-  // *on* one of these steps means, by construction, that swiping forward
-  // can never have a valid next screen yet - there's no "skip ahead"
-  // state to reach, only a reminder that the real action still needs doing.
-  const showReminder = (text: string) => {
-    setReminder(text)
-    if (reminderTimer.current !== null) window.clearTimeout(reminderTimer.current)
-    reminderTimer.current = window.setTimeout(() => setReminder(null), 2200)
-  }
+  const realIndex = STEPS.indexOf(step)
+  // Which step's content is actually being shown - independent of `step`
+  // (real progress) so a swipe can browse ahead to preview a step that
+  // hasn't been reached yet, or back to review one already passed, without
+  // touching any real BLE/network state. Only when this matches the real
+  // step does the actual functional screen mount; otherwise a lightweight,
+  // read-only preview card renders instead - swiping ahead of a live BLE
+  // handshake can't run it early, but showing what it is and why it isn't
+  // unlocked yet is exactly what was asked for.
+  const [previewIndex, setPreviewIndex] = useState(realIndex)
+
+  // Real progress always wins - the moment something actually happens
+  // (a serial gets confirmed, a device is found, ...), snap the view back
+  // to it rather than leaving the user stranded on a stale preview.
+  useEffect(() => {
+    setPreviewIndex(STEPS.indexOf(step))
+  }, [step])
 
   // Found -> straight to WiFi entry, no separate confirmation screen. The
   // browser's own device picker already doubles as manual confirmation.
@@ -106,65 +136,72 @@ export function DeviceScanner() {
     }
   }
 
-  const SWIPE_FORWARD_REMINDER: Partial<Record<Step, string>> = {
-    scan: "Scan or enter the camera's serial to continue",
-    find: 'Find the camera over Bluetooth to continue',
-    wifi: 'Enter the WiFi details and continue to move on',
-  }
-
+  // Pure view navigation - never mutates real step/device/BLE state, so
+  // swiping through the whole flow to see what's coming is always safe,
+  // completed or not.
   const swipeHandlers = useSwipe(
-    () => {
-      const message = SWIPE_FORWARD_REMINDER[step]
-      if (message) showReminder(message)
-      // pairing/backend/stream: no message, swipe forward is simply inert -
-      // these are live processes, not a form to skip ahead of.
-    },
-    () => {
-      if (step === 'find' || step === 'wifi') goBack()
-      // scan has nothing before it; pairing/backend/stream intentionally
-      // hide the back button too (a live BLE/network operation may be
-      // in flight), so swipe-back is inert there as well.
-    },
+    () => setPreviewIndex((i) => Math.min(i + 1, STEPS.length - 1)),
+    () => setPreviewIndex((i) => Math.max(i - 1, 0)),
   )
-  const swipeEnabled = step === 'scan' || step === 'find' || step === 'wifi'
+
+  const previewedStep = STEPS[previewIndex]
+  const isViewingRealStep = previewIndex === realIndex
+  // Only meaningful ahead of real progress - reviewing an already-completed
+  // step needs no such reminder, there's nothing left to finish there.
+  const previewIncomplete = !isViewingRealStep && previewIndex > realIndex
 
   return (
     <div className="relative flex min-h-[560px] flex-1 flex-col gap-4">
       <div className="flex h-8 items-center justify-between">
-        {step === 'scan' || step === 'pairing' || step === 'backend' || step === 'stream' ? (
-          <span />
-        ) : (
+        {isViewingRealStep && (step === 'find' || step === 'wifi') ? (
           <Button variant="ghost" size="icon" onClick={goBack} aria-label="Back" className="-ml-2">
             <ChevronLeft />
           </Button>
+        ) : previewIndex > 0 ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setPreviewIndex((i) => Math.max(i - 1, 0))}
+            aria-label="Back"
+            className="-ml-2"
+          >
+            <ChevronLeft />
+          </Button>
+        ) : (
+          <span />
         )}
-        <StepDots step={step} />
+        <StepDots activeIndex={previewIndex} />
       </div>
 
-      <div
-        key={step}
-        className="flex flex-1 touch-pan-y flex-col animate-in"
-        {...(swipeEnabled ? swipeHandlers : {})}
-      >
-        {step === 'scan' && (
+      <div key={step} className="flex flex-1 touch-pan-y flex-col animate-in" {...swipeHandlers}>
+        {!isViewingRealStep ? (
+          <div className="flex flex-1 flex-col gap-5">
+            <div>
+              <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                Step {previewIndex + 1} of {STEPS.length}
+              </span>
+              <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
+                {STEP_INFO[previewedStep as Exclude<Step, 'stream'>].title}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {STEP_INFO[previewedStep as Exclude<Step, 'stream'>].description}
+              </p>
+            </div>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+              <p>Just previewing what's ahead.</p>
+              <p className="text-xs">Swipe to keep browsing, or complete the steps in order to actually get here.</p>
+            </div>
+          </div>
+        ) : step === 'scan' ? (
           <ScanSerialScreen
             onSerialConfirmed={(s) => {
               setSerial(s)
               setStep('find')
             }}
           />
-        )}
-
-        {step === 'find' && (
-          <FindDeviceScreen
-            serial={serial}
-            scanning={scanning}
-            error={error}
-            onScan={(mode) => scan(mode)}
-          />
-        )}
-
-        {step === 'wifi' && (
+        ) : step === 'find' ? (
+          <FindDeviceScreen serial={serial} scanning={scanning} error={error} onScan={(mode) => scan(mode)} />
+        ) : step === 'wifi' ? (
           <WifiCredentialsScreen
             deviceName={device?.name ?? serial}
             serialMatch={serialMatch}
@@ -176,9 +213,7 @@ export function DeviceScanner() {
               setStep('pairing')
             }}
           />
-        )}
-
-        {step === 'pairing' && device && (
+        ) : step === 'pairing' && device ? (
           <PairingScreen
             device={device.device}
             serial={serial}
@@ -195,9 +230,7 @@ export function DeviceScanner() {
               }
             }}
           />
-        )}
-
-        {step === 'backend' && (
+        ) : step === 'backend' ? (
           <BackendHandoffScreen
             serial={serial}
             alreadyNotified={backendNotified}
@@ -206,19 +239,20 @@ export function DeviceScanner() {
             onViewStream={() => setStep('stream')}
             onCancel={goHome}
           />
-        )}
-
-        {step === 'stream' && <StreamScreen serial={serial} onBack={() => setStep('backend')} />}
+        ) : step === 'stream' ? (
+          <StreamScreen serial={serial} onBack={() => setStep('backend')} />
+        ) : null}
       </div>
 
-      {/* Absolutely positioned and auto-dismissing - never shifts the card
-          above it, however long the message runs. A plain reminder, not an
-          error/warning: nothing has gone wrong, the next step just isn't
-          unlocked yet. */}
-      {reminder && (
+      {/* Absolutely positioned, no auto-dismiss timer needed - it's derived
+          straight from previewIndex vs realIndex, so it just stops
+          rendering the moment either changes. Never shifts the card above
+          it. A plain reminder, not an error: nothing's gone wrong, this
+          step just isn't unlocked for real yet. */}
+      {previewIncomplete && (
         <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-4">
           <div className="animate-in rounded-full border border-border bg-card px-4 py-2 text-center text-xs font-medium text-muted-foreground shadow-lg">
-            {reminder}
+            Complete the steps before this one first to actually get here
           </div>
         </div>
       )}
