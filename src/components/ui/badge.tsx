@@ -3,16 +3,15 @@ import { type HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
+  'inline-flex items-center rounded-full px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.12em] whitespace-nowrap',
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900',
-        secondary:
-          'border-transparent bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50',
-        success: 'border-transparent bg-green-600 text-white dark:bg-green-700',
-        destructive: 'border-transparent bg-red-600 text-white dark:bg-red-700',
-        outline: 'border-zinc-200 text-zinc-950 dark:border-zinc-800 dark:text-zinc-50',
+        default: 'bg-primary text-primary-foreground',
+        secondary: 'bg-secondary text-secondary-foreground',
+        success: 'bg-lime text-[#0c0c0c]',
+        destructive: 'bg-destructive text-white dark:text-[#0c0c0c]',
+        outline: 'border border-border text-foreground',
       },
     },
     defaultVariants: {

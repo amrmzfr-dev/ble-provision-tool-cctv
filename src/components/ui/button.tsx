@@ -3,22 +3,21 @@ import { type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300',
+  'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-transparent text-sm font-semibold transition-all outline-none select-none active:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:ring-3 focus-visible:ring-ring/50',
   {
     variants: {
       variant: {
-        default:
-          'bg-zinc-900 text-zinc-50 hover:bg-zinc-900/90 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-50/90',
-        outline:
-          'border border-zinc-200 bg-transparent hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800',
-        ghost: 'hover:bg-zinc-100 dark:hover:bg-zinc-800',
-        destructive: 'bg-red-600 text-white hover:bg-red-600/90 dark:bg-red-700 dark:hover:bg-red-700/90',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/85',
+        outline: 'border-border bg-transparent hover:bg-muted',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-muted',
+        ghost: 'hover:bg-muted',
+        destructive: 'bg-destructive/10 text-destructive hover:bg-destructive/20',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8 text-base',
-        icon: 'h-10 w-10',
+        default: 'h-11 px-4',
+        sm: 'h-9 rounded-lg px-3 text-xs',
+        lg: 'h-12 px-5 text-base',
+        icon: 'size-11 rounded-full',
       },
     },
     defaultVariants: {

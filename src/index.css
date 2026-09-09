@@ -1,11 +1,120 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:is(.dark *));
 
-:root {
-  color-scheme: light dark;
+@theme inline {
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, Menlo, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-violet: var(--violet);
+  --color-yellow: var(--yellow);
+  --color-lime: var(--lime);
 }
 
-body {
-  margin: 0;
+/* Same palette/type system as the fullstack-gate-sensor mobile app (its
+   src/index.css + src/lib/gatekeepTheme.ts) — one hero accent used for both
+   primary actions and alerts, Archivo/DM Mono, 0.85rem radius, hairline
+   borders. That reference is dark-only; this app keeps both modes per
+   project convention, so the dark values below are copied exactly and the
+   light palette is derived from the same accent/radius/type system. */
+:root {
+  --radius: 0.85rem;
+
+  --background: #f1ede2;
+  --foreground: #0c0c0c;
+  --card: #ffffff;
+  --card-foreground: #0c0c0c;
+  --primary: #ff5b41;
+  --primary-foreground: #0c0c0c;
+  --secondary: #e9e4d6;
+  --secondary-foreground: #0c0c0c;
+  --muted: #e9e4d6;
+  --muted-foreground: #6b6558;
+  --accent: #ffe4dc;
+  --accent-foreground: #b8351e;
+  --destructive: #d9432a;
+  --border: rgba(12, 12, 12, 0.1);
+  --input: rgba(12, 12, 12, 0.14);
+  --ring: #ff5b41;
+  --violet: #6a58e0;
+  --yellow: #b8860a;
+  --lime: #5c8a26;
+}
+
+.dark {
+  --background: #0c0c0c;
+  --foreground: #ffffff;
+  --card: #161616;
+  --card-foreground: #ffffff;
+  --primary: #ff5b41;
+  --primary-foreground: #0c0c0c;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #9a9a9a;
+  --accent: #2a1712;
+  --accent-foreground: #ff8a73;
+  --destructive: #ff5b41;
+  --border: rgba(255, 255, 255, 0.09);
+  --input: rgba(255, 255, 255, 0.09);
+  --ring: #ff5b41;
+  --violet: #7c6bf5;
+  --yellow: #f4c33f;
+  --lime: #a8e063;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Archivo', system-ui, sans-serif;
+  }
+}
+
+/* Hide scrollbars everywhere (still scrollable, just no visible track/thumb). */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Pulse ring behind the Bluetooth icon while a scan is in progress. */
+@keyframes gcPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+.animate-gc-pulse {
+  animation: gcPulse 1.1s ease-out infinite;
 }

@@ -7,11 +7,26 @@ export default function App() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <div className="min-h-svh bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="mx-auto flex max-w-md flex-col items-center gap-6 px-4 py-10">
-        <div className="flex w-full items-center justify-between">
-          <h1 className="text-lg font-semibold">Perodua Charger CCTV — Pairing</h1>
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
+    <div className="min-h-svh bg-background text-foreground">
+      <div className="mx-auto flex max-w-md flex-col gap-6 px-5 py-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Perodua smart charger
+            </span>
+            <h1 className="text-4xl leading-[0.92] font-black tracking-tight uppercase">
+              CCTV
+              <br />
+              Pairing
+            </h1>
+          </div>
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="border border-border"
+          >
             {theme === 'dark' ? <Sun /> : <Moon />}
           </Button>
         </div>
