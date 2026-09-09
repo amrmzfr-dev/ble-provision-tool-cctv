@@ -1,5 +1,5 @@
 import { Keyboard, QrCode, ScanLine } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useQrScanner } from '@/hooks/useQrScanner'
@@ -14,7 +14,8 @@ type Mode = 'idle' | 'camera' | 'manual'
 export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
   const [mode, setMode] = useState<Mode>('idle')
   const [manualSerial, setManualSerial] = useState('')
-  const { videoRef, error, start, stop } = useQrScanner((text) => {
+  const [focusRing, setFocusRing] = useState<{ x: number; y: number } | null>(null)
+  const { videoRef, error, start, stop, focusAt } = useQrScanner((text) => {
     onSerialConfirmed(normalizeSerial(text))
   })
 
@@ -27,6 +28,30 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
     // loop while permission stays denied.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
+
+  const handleTapToFocus = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth || !video.videoHeight) return
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const tapX = event.clientX - rect.left
+    const tapY = event.clientY - rect.top
+
+    // object-cover scales the native video up until it fully covers the
+    // container, cropping whatever overflows on one axis — undo that to map
+    // a tap on the displayed preview back to a normalized [0,1] point in the
+    // camera's own frame, which is what pointsOfInterest expects.
+    const scale = Math.max(rect.width / video.videoWidth, rect.height / video.videoHeight)
+    const offsetX = (video.videoWidth * scale - rect.width) / 2
+    const offsetY = (video.videoHeight * scale - rect.height) / 2
+    const normalizedX = (tapX + offsetX) / scale / video.videoWidth
+    const normalizedY = (tapY + offsetY) / scale / video.videoHeight
+
+    focusAt(Math.min(1, Math.max(0, normalizedX)), Math.min(1, Math.max(0, normalizedY)))
+
+    setFocusRing({ x: tapX, y: tapY })
+    window.setTimeout(() => setFocusRing(null), 600)
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-5">
@@ -82,12 +107,21 @@ export function ScanSerialScreen({ onSerialConfirmed }: ScanSerialScreenProps) {
 
       {mode === 'camera' && (
         <>
-          <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl border border-border bg-[#0c0c0c]">
+          <div
+            onClick={handleTapToFocus}
+            className="relative flex flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-border bg-[#0c0c0c]"
+          >
             <video ref={videoRef} playsInline muted className="absolute inset-0 size-full object-cover" />
             <div className="pointer-events-none absolute inset-10 rounded-2xl border-2 border-primary" />
+            {focusRing && (
+              <span
+                className="animate-focus-ring pointer-events-none absolute size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
+                style={{ left: focusRing.x, top: focusRing.y }}
+              />
+            )}
             <span className="pointer-events-none absolute bottom-5 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 font-mono text-[10px] font-medium tracking-[0.1em] text-white uppercase">
               <ScanLine className="size-3.5" />
-              Looking for a code…
+              Tap anywhere to focus
             </span>
           </div>
 

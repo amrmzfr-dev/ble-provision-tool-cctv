@@ -6,6 +6,8 @@ interface UseQrScannerResult {
   error: string | null
   start: () => Promise<void>
   stop: () => void
+  /** Normalized [0,1] point in the camera's own frame — see handleTapToFocus in ScanSerialScreen for converting a tap position into this. */
+  focusAt: (x: number, y: number) => void
 }
 
 export function useQrScanner(onResult: (text: string) => void): UseQrScannerResult {
@@ -94,7 +96,23 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
     }
   }, [tick])
 
+  const focusAt = useCallback((x: number, y: number) => {
+    const [track] = streamRef.current?.getVideoTracks() ?? []
+    if (!track) return
+
+    // pointsOfInterest biases continuous AF/AE toward this point rather than
+    // locking focus there outright — same experimental Image Capture
+    // extension as focusMode, so this is a best-effort nudge, not a
+    // guaranteed refocus. Fails silently where unsupported (most non-Android
+    // browsers, including Bluefy on iOS).
+    track
+      .applyConstraints({
+        advanced: [{ pointsOfInterest: [{ x, y }] } as MediaTrackConstraintSet],
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => stop, [stop])
 
-  return { videoRef, error, start, stop }
+  return { videoRef, error, start, stop, focusAt }
 }
