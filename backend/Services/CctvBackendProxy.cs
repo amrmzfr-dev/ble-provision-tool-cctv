@@ -85,7 +85,10 @@ public class CctvBackendProxy(HttpClient httpClient, IOptions<CctvBackendOptions
         using var response = await httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync();
-        var result = await JsonSerializer.DeserializeAsync<JsonElement>(stream);
-        return result ?? throw new InvalidOperationException($"Empty JSON response from {targetUrl}");
+        // JsonElement is a struct, so DeserializeAsync<JsonElement> never
+        // actually returns null at runtime despite the T? in its signature
+        // (that annotation only takes effect for reference types on an
+        // unconstrained generic parameter) — no null fallback needed here.
+        return await JsonSerializer.DeserializeAsync<JsonElement>(stream);
     }
 }
