@@ -13,7 +13,10 @@ interface StreamScreenProps {
   onBack: () => void
 }
 
-type Phase = 'waiting-online' | 'connecting' | 'streaming' | 'error'
+// No separate 'streaming' phase — see the note above the effect that reads
+// the stream body for why setting one from inside that effect was itself the
+// bug that caused "0 chunks, 0.0 KB" forever.
+type Phase = 'waiting-online' | 'connecting' | 'error'
 
 interface Stats {
   chunks: number
@@ -111,13 +114,20 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
           return
         }
 
+        // Deliberately NOT calling setPhase() here (or anywhere else in this
+        // function once reading starts) — this effect is keyed on `phase`,
+        // so changing it would run this same effect's own cleanup below
+        // (cancelled = true; controller.abort()) on the very next render,
+        // aborting the fetch moments after it started. That was the actual
+        // cause of the stuck "0 chunks, 0.0 KB": the read loop got torn down
+        // by its own phase transition before a chunk ever arrived. `stats`
+        // being non-null is what the UI uses to know we're live instead.
         const reader = response.body.getReader()
         const startedAt = Date.now()
         let chunks = 0
         let bytes = 0
         let lastChunkAt: number | null = null
         setStats({ chunks, bytes, startedAt, lastChunkAt })
-        setPhase('streaming')
         logEvent('success', 'First response received — reading live stream body')
 
         const summaryTimer = setInterval(() => {
@@ -195,7 +205,7 @@ export function StreamScreen({ serial, onBack }: StreamScreenProps) {
             <p className="text-sm font-semibold">Couldn't confirm the stream</p>
             <p className="text-xs text-muted-foreground">{error}</p>
           </>
-        ) : phase === 'streaming' && stats ? (
+        ) : stats ? (
           <>
             <div className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-destructive text-primary-foreground">
               <span className="absolute inset-0 rounded-2xl bg-primary/50 animate-gc-pulse" />
