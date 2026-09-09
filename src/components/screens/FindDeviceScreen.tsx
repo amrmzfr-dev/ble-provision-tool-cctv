@@ -42,7 +42,7 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
     <div className="flex flex-1 flex-col gap-5">
       <div>
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Step 2 of 3
+          Step 2 of 6
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
           Find it over Bluetooth

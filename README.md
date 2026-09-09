@@ -21,12 +21,28 @@ typing the serial in) as step 1, before it will search for the device over Bluet
 - [x] Phase 1 — scaffold + discovery: scan the camera's serial QR code (required), then find it
       over Bluetooth via one of three scan-filter modes, with a match/mismatch check against the
       scanned serial once found
-- [ ] Phase 2 — GATT transport + frame fragmentation
-- [ ] Phase 3 — RSA/AES handshake, read serial number + security code
-- [ ] Phase 4 — send WiFi credentials, read join result
-- [ ] Phase 5 — call the backend provisioning API, poll status (note: `cctv-api-prod/docs/SDK_GUIDE_DOCUMENTATION.md`
-      documents the camera's default login as `cctv_admin` / `cctv@2025` — check whether Phase 5
-      needs to pass these to `register_credentials` or whether the backend already assumes them)
+- [x] Phase 2 — GATT transport (`src/lib/ble/transport.ts`) + frame fragmentation/reassembly
+      (`src/lib/ble/framing.ts`), unit-tested
+- [x] Phase 3 — RSA/AES handshake (`src/lib/ble/crypto.ts`), read serial number + security code,
+      unit-tested. **Unconfirmed against real hardware:** the SN/SC response parsing
+      (`parseSnOrScResponse` in `payloads.ts`) guesses between two readings of an ambiguous note in
+      the decompiled SDK — it'll self-correct once tested, but watch this first.
+- [x] Phase 4 — send WiFi credentials, read join result (`PairingScreen.tsx` runs the whole
+      handshake live with per-step progress)
+- [x] Phase 5 — call the backend provisioning API, poll status (`BackendHandoffScreen.tsx`).
+      **Judgment call, not confirmed by docs:** `wifi-configured` is called only after the camera's
+      own BLE join-result (`05 02`) comes back success — not right after the credentials are sent —
+      since there's no point starting the server's 5-minute window for a WiFi attempt that's
+      already known to have failed.
+- [ ] Phase 6 (not in the original plan, added per a later ask) — bind a user to the device
+      (`register_credentials`) and actually play the live stream (needs a FLV-capable player like
+      mpegts.js — browsers can't play raw FLV natively)
+
+**None of Phases 2-5 have touched a real camera yet.** They're built against the protocol recovered
+by decompiling `bluetoothhelper-release.aar` (see the plan doc), which is the best reconstruction
+available without a hardware SDK reference, but real-device testing will surface things static
+analysis couldn't — timing, exact byte quirks, whichever of the two SN/SC parsing guesses above is
+actually right.
 
 ## Running it
 

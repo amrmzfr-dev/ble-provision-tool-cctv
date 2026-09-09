@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle2, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -8,14 +8,15 @@ interface ResultScreenProps {
   device: DiscoveredDevice
   serialMatch: boolean
   onScanAgain: () => void
+  onContinue: () => void
 }
 
-export function ResultScreen({ device, serialMatch, onScanAgain }: ResultScreenProps) {
+export function ResultScreen({ device, serialMatch, onScanAgain, onContinue }: ResultScreenProps) {
   return (
     <div className="flex flex-1 flex-col gap-5">
       <div>
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Step 3 of 3
+          Step 3 of 6
         </span>
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
           Device found
@@ -66,14 +67,23 @@ export function ResultScreen({ device, serialMatch, onScanAgain }: ResultScreenP
 
         <div className="flex-1" />
 
-        <Button
-          variant="outline"
-          onClick={onScanAgain}
-          className="self-start border-current/30 bg-transparent"
-        >
-          <RotateCcw />
-          Scan again
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={onScanAgain}
+            className="border-current/30 bg-transparent"
+          >
+            <RotateCcw />
+            Scan again
+          </Button>
+          <Button
+            onClick={onContinue}
+            className="flex-1 bg-[#0c0c0c] text-white hover:bg-[#0c0c0c]/85"
+          >
+            Continue
+            <ArrowRight />
+          </Button>
+        </div>
       </div>
     </div>
   )

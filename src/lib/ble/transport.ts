@@ -1,0 +1,96 @@
+import { GATT_NOTIFY_CHARACTERISTIC_UUID, GATT_SERVICE_UUID, GATT_WRITE_CHARACTERISTIC_UUID } from './constants'
+import { fragmentFrame, FrameAssembler, type AssembledFrame } from './framing'
+
+/**
+ * Thin GATT wrapper. Deliberately protocol-ignorant — it just moves bytes
+ * over fff1 (write) and fff2 (notify), fragmenting/reassembling per the
+ * wire format, and hands complete frames back to whoever's waiting.
+ * Encryption, command codes, and response validation all live in
+ * provision.ts, which knows the actual protocol semantics.
+ */
+export class BleTransport {
+  private server: BluetoothRemoteGATTServer | null = null
+  private writeChar: BluetoothRemoteGATTCharacteristic | null = null
+  private notifyChar: BluetoothRemoteGATTCharacteristic | null = null
+  private assembler = new FrameAssembler()
+  private pending: { resolve: (f: AssembledFrame) => void; reject: (e: Error) => void } | null = null
+
+  constructor(private device: BluetoothDevice) {}
+
+  async connect(): Promise<void> {
+    if (!this.device.gatt) throw new Error('This device has no GATT server')
+
+    this.device.addEventListener('gattserverdisconnected', this.handleDisconnect)
+
+    const server = await this.device.gatt.connect()
+    const service = await server.getPrimaryService(GATT_SERVICE_UUID)
+    this.writeChar = await service.getCharacteristic(GATT_WRITE_CHARACTERISTIC_UUID)
+    this.notifyChar = await service.getCharacteristic(GATT_NOTIFY_CHARACTERISTIC_UUID)
+
+    // startNotifications() resolving already confirms the CCCD (0x2902)
+    // descriptor write completed — no separate wait needed before the
+    // handshake's first write.
+    await this.notifyChar.startNotifications()
+    this.notifyChar.addEventListener('characteristicvaluechanged', this.handleNotification)
+
+    this.server = server
+  }
+
+  disconnect(): void {
+    this.notifyChar?.removeEventListener('characteristicvaluechanged', this.handleNotification)
+    this.device.removeEventListener('gattserverdisconnected', this.handleDisconnect)
+    this.server?.disconnect()
+  }
+
+  private handleDisconnect = () => {
+    this.pending?.reject(new Error('The camera disconnected over Bluetooth mid-request'))
+    this.pending = null
+  }
+
+  private handleNotification = (event: Event) => {
+    const target = event.target as BluetoothRemoteGATTCharacteristic
+    const value = target.value
+    if (!value) return
+
+    const fragment = new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+    const assembled = this.assembler.push(fragment)
+    if (assembled && this.pending) {
+      const { resolve } = this.pending
+      this.pending = null
+      resolve(assembled)
+    }
+  }
+
+  private async writeFragments(fragments: Uint8Array[]): Promise<void> {
+    if (!this.writeChar) throw new Error('Not connected')
+    for (const fragment of fragments) {
+      await this.writeChar.writeValueWithResponse(fragment)
+    }
+  }
+
+  private waitForFrame(timeoutMs: number, onTimeoutMessage: string): Promise<AssembledFrame> {
+    if (this.pending) throw new Error('A BLE request is already in flight')
+
+    return new Promise<AssembledFrame>((resolve, reject) => {
+      this.pending = { resolve, reject }
+      setTimeout(() => {
+        if (this.pending) {
+          this.pending = null
+          reject(new Error(onTimeoutMessage))
+        }
+      }, timeoutMs)
+    })
+  }
+
+  /** Writes `frame` and waits for the next complete response frame — the protocol is strictly one request in flight at a time. */
+  async sendRaw(frame: Uint8Array, encrypted: boolean, timeoutMs = 10_000): Promise<AssembledFrame> {
+    const wait = this.waitForFrame(timeoutMs, 'Timed out waiting for a response from the camera')
+    await this.writeFragments(fragmentFrame(frame, encrypted))
+    return wait
+  }
+
+  /** For responses that arrive unsolicited (the WiFi join result), not as a direct reply to a write. */
+  async waitForNotification(timeoutMs: number): Promise<AssembledFrame> {
+    return this.waitForFrame(timeoutMs, "Timed out waiting for the camera to report its WiFi join result")
+  }
+}
