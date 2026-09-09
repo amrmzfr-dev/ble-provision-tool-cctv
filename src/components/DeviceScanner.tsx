@@ -1,9 +1,11 @@
-import { Bluetooth, Loader2, RotateCcw } from 'lucide-react'
+import { Bluetooth, Loader2, QrCode, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { QrScannerDialog } from '@/components/QrScannerDialog'
 import { useBleScan } from '@/hooks/useBleScan'
+import { deviceMatchesSerial, normalizeSerial } from '@/lib/ble/serial'
 import type { ScanFilterMode } from '@/lib/ble/types'
 
 const MODES: { value: ScanFilterMode; label: string; hint: string }[] = [
@@ -27,9 +29,12 @@ const MODES: { value: ScanFilterMode; label: string; hint: string }[] = [
 export function DeviceScanner() {
   const [mode, setMode] = useState<ScanFilterMode>('manufacturer')
   const [namePrefix, setNamePrefix] = useState('')
+  const [expectedSerial, setExpectedSerial] = useState('')
+  const [showQrScanner, setShowQrScanner] = useState(false)
   const { device, error, scanning, scan, reset } = useBleScan()
 
   const guessedSerial = device && device.name.length > 4 ? device.name.slice(4) : null
+  const serialMatch = device && expectedSerial ? deviceMatchesSerial(device.name, expectedSerial) : null
 
   return (
     <Card className="w-full max-w-md">
@@ -43,6 +48,34 @@ export function DeviceScanner() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+            Expected serial number (optional)
+          </span>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Scan the QR code, or type it in"
+              value={expectedSerial}
+              onChange={(e) => setExpectedSerial(e.target.value.toUpperCase())}
+              className="h-10 flex-1 rounded-md border border-zinc-200 bg-transparent px-3 text-sm font-mono dark:border-zinc-800"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setShowQrScanner(true)}
+              aria-label="Scan QR code"
+            >
+              <QrCode />
+            </Button>
+          </div>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Scanning the sticker on the camera confirms you paired with the right one once found —
+            it doesn't change how the search below runs.
+          </p>
+        </div>
+
         <fieldset className="flex flex-col gap-2" disabled={scanning}>
           {MODES.map((m) => (
             <label
@@ -107,6 +140,14 @@ export function DeviceScanner() {
               <span className="text-zinc-500 dark:text-zinc-400">Browser device id: </span>
               <code className="break-all font-mono text-xs">{device.id}</code>
             </div>
+            {serialMatch !== null && (
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-500 dark:text-zinc-400">Matches scanned serial: </span>
+                <Badge variant={serialMatch ? 'success' : 'destructive'}>
+                  {serialMatch ? 'yes' : 'no — wrong camera?'}
+                </Badge>
+              </div>
+            )}
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Check: does the guessed serial match the sticker on the camera? Note the 4 characters
               dropped — that is the name prefix Phase 1 is looking for.
@@ -118,6 +159,13 @@ export function DeviceScanner() {
           </div>
         )}
       </CardContent>
+
+      {showQrScanner && (
+        <QrScannerDialog
+          onResult={(text) => setExpectedSerial(normalizeSerial(text))}
+          onClose={() => setShowQrScanner(false)}
+        />
+      )}
     </Card>
   )
 }

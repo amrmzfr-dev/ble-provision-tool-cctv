@@ -8,7 +8,8 @@ Full plan, recovered protocol, and phase breakdown:
 
 ## Status
 
-- [x] Phase 1 — scaffold + discovery (`DeviceScanner`, three scan-filter modes)
+- [x] Phase 1 — scaffold + discovery (`DeviceScanner`, three scan-filter modes, QR-scan the
+      camera's serial to confirm you paired with the right one once found)
 - [ ] Phase 2 — GATT transport + frame fragmentation
 - [ ] Phase 3 — RSA/AES handshake, read serial number + security code
 - [ ] Phase 4 — send WiFi credentials, read join result
