@@ -64,7 +64,7 @@ export default function App() {
       {authToken && (
         <BottomNav
           active={viewToTab(view)}
-          onSelect={(tab) => setView({ name: tab })}
+          onSelect={(tab) => setView(tab === 'pairing' ? { name: 'pairing' } : { name: 'my-cameras' })}
           theme={theme}
           onToggleTheme={toggleTheme}
           onLogoutClick={() => setConfirmingLogout(true)}
