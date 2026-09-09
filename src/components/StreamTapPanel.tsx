@@ -1,91 +1,109 @@
 import { AlertTriangle, Loader2, Play, Radio, RotateCcw, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStreamTap } from '@/hooks/useStreamTap'
+import { cn } from '@/lib/utils'
 
 interface StreamTapPanelProps {
   serial: string
-  /** Fixed height for the log area — StreamScreen (full page) wants it to fill available space; CameraDetailScreen (one section among several) wants a bounded height instead. */
-  logHeightClassName?: string
+  /** Fixed height for the content box — same box for every phase, see the note below. */
+  heightClassName?: string
 }
 
 /**
- * The stream-activity UI (status badge, live log, Stop/Start) without any
- * page chrome — used both by the full-screen StreamScreen and embedded
- * inline on a camera's detail page. See useStreamTap.ts for why this isn't
- * a video player.
+ * The stream-activity UI (status strip, log/status content, Stop/Start) —
+ * used both by the full-screen StreamScreen and embedded inline on a
+ * camera's detail page. See useStreamTap.ts for why this isn't a video
+ * player.
+ *
+ * The outer shape (status strip height, content box height, button row
+ * height) is IDENTICAL across every phase — default/waiting/connecting,
+ * live, stopped, and error. Every phase used to render a different-sized
+ * block (an error banner, a centered spinner card, or the log box, each
+ * with their own height, plus the button row only existing at all once
+ * stats existed) so the whole card visibly resized as the stream moved
+ * through its lifecycle. Now there is exactly one status strip, one content
+ * box, and one button row, always — only what's drawn *inside* each of
+ * those three fixed slots changes.
  */
-export function StreamTapPanel({ serial, logHeightClassName = 'flex-1' }: StreamTapPanelProps) {
+export function StreamTapPanel({ serial, heightClassName = 'h-72' }: StreamTapPanelProps) {
   const { phase, error, stats, lines, logBoxRef, isLive, stop, restart } = useStreamTap(serial)
 
+  const statusLabel =
+    phase === 'error' ? 'Error' : phase === 'stopped' ? 'Stopped' : isLive ? 'Live' : 'Connecting…'
+
   return (
-    <div className="flex flex-1 flex-col gap-3">
-      {phase === 'error' && (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-center">
-          <AlertTriangle className="size-6 text-destructive" strokeWidth={1.5} />
-          <p className="text-sm font-semibold text-destructive">Couldn't confirm the stream</p>
-          <p className="text-xs text-muted-foreground">{error}</p>
-        </div>
-      )}
+    <div className="flex flex-col gap-3">
+      <div className="flex h-9 shrink-0 items-center justify-between rounded-xl border border-border bg-card px-3">
+        <span className="flex items-center gap-2 text-xs font-semibold uppercase">
+          <Radio className={isLive ? 'size-3.5 animate-gc-pulse text-primary' : 'size-3.5 text-muted-foreground'} />
+          {statusLabel}
+        </span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {stats ? `${stats.chunks} chunks · ${(stats.bytes / 1024).toFixed(1)} KB` : '— chunks · — KB'}
+        </span>
+      </div>
 
-      {!stats && phase !== 'error' && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card p-5 text-center">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-sm font-semibold">
-            {phase === 'waiting-online' ? 'Waiting for the camera to be online…' : 'Opening the stream…'}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Checking <code className="font-mono">/admin/device/{serial}</code> fresh, same as the
-            reference Android app does right before it opens a stream.
-          </p>
-        </div>
-      )}
-
-      {stats && (
-        <>
-          <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2">
-            <span className="flex items-center gap-2 text-xs font-semibold uppercase">
-              <Radio className={isLive ? 'size-3.5 animate-gc-pulse text-primary' : 'size-3.5 text-muted-foreground'} />
-              {isLive ? 'Live' : 'Stopped'}
-            </span>
-            <span className="font-mono text-xs text-muted-foreground">
-              {stats.chunks} chunks · {(stats.bytes / 1024).toFixed(1)} KB
-            </span>
+      <div
+        className={cn(
+          heightClassName,
+          'shrink-0 overflow-y-auto rounded-2xl border border-border bg-[#0c0c0c] p-3 font-mono text-[11px] leading-relaxed text-lime',
+        )}
+      >
+        {phase === 'error' ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <AlertTriangle className="size-6 text-destructive" strokeWidth={1.5} />
+            <p className="text-sm font-semibold text-destructive">Couldn't confirm the stream</p>
+            <p className="text-xs text-white/50">{error}</p>
           </div>
-
-          <div
-            ref={logBoxRef}
-            className={`${logHeightClassName} overflow-y-auto rounded-2xl border border-border bg-[#0c0c0c] p-3 font-mono text-[11px] leading-relaxed text-lime`}
-          >
+        ) : !stats ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+            <Loader2 className="size-8 animate-spin text-primary" />
+            <p className="text-sm font-semibold text-white/85">
+              {phase === 'waiting-online' ? 'Waiting for the camera to be online…' : 'Opening the stream…'}
+            </p>
+            <p className="text-xs text-white/50">
+              Checking <code className="font-mono">/admin/device/{serial}</code> fresh, same as the
+              reference Android app does right before it opens a stream.
+            </p>
+          </div>
+        ) : (
+          <div ref={logBoxRef} className="h-full overflow-y-auto">
             {lines.length === 0 ? (
               <p className="text-white/30">Waiting for the first chunk…</p>
             ) : (
               lines.map((line, i) => <p key={i}>{line}</p>)
             )}
           </div>
-        </>
-      )}
+        )}
+      </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="shrink-0 font-mono text-xs text-muted-foreground">
         No video preview: this camera streams H.265, which browsers can't decode. This confirms
         the full path — browser → backend → the camera's live session — is actually working.
       </p>
 
-      {(isLive || phase === 'stopped' || phase === 'error') && (
-        <div className="flex gap-2">
-          {isLive && (
-            <Button variant="outline" className="flex-1" onClick={stop}>
-              <Square />
-              Stop
-            </Button>
-          )}
-          {(phase === 'stopped' || phase === 'error') && (
-            <Button variant="outline" className="flex-1" onClick={restart}>
-              {phase === 'error' ? <RotateCcw /> : <Play />}
-              {phase === 'error' ? 'Retry' : 'Start'}
-            </Button>
-          )}
-        </div>
-      )}
+      <div className="flex shrink-0 gap-2">
+        <Button
+          variant="outline"
+          className={cn('flex-1', !isLive && 'invisible')}
+          aria-hidden={!isLive}
+          tabIndex={isLive ? undefined : -1}
+          onClick={stop}
+        >
+          <Square />
+          Stop
+        </Button>
+        <Button
+          variant="outline"
+          className={cn('flex-1', phase !== 'stopped' && phase !== 'error' && 'invisible')}
+          aria-hidden={phase !== 'stopped' && phase !== 'error'}
+          tabIndex={phase === 'stopped' || phase === 'error' ? undefined : -1}
+          onClick={restart}
+        >
+          {phase === 'error' ? <RotateCcw /> : <Play />}
+          {phase === 'error' ? 'Retry' : 'Start'}
+        </Button>
+      </div>
     </div>
   )
 }
