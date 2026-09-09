@@ -1,10 +1,12 @@
-import { ChevronRight, Loader2, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { AlertTriangle, ChevronRight, Loader2, RefreshCw, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api/config'
-import { type CameraDto, listMyCameras, refreshAllMyCameras } from '@/lib/api/myCamerasClient'
+import { type CameraDto, listMyCameras, refreshAllMyCameras, removeMyCamera } from '@/lib/api/myCamerasClient'
 import { logEvent } from '@/lib/debugLog'
 import { cn } from '@/lib/utils'
+
+const LONG_PRESS_MS = 2000
 
 interface MyCamerasScreenProps {
   onOpenCamera: (serial: string) => void
@@ -20,16 +22,22 @@ function statusTone(status: string | null): string {
 }
 
 /**
- * Deliberately just a plain tappable list — no per-row action buttons.
- * Everything (status detail, stream, reset + its confirmation/explanation)
- * lives on CameraDetailScreen, reached by tapping a row. Refreshing status
- * for the whole list is one bulk call (refreshAllMyCameras), not one
- * request per row — see MyCamerasController.RefreshAll on the backend.
+ * A plain tappable list — no per-row action buttons cluttering each card.
+ * Tap opens CameraDetailScreen (status/stream/reset all live there). Hold a
+ * row for ~2s to bring up a "delete from list?" confirmation instead —
+ * removing a camera from this personal list isn't something that should be
+ * one accidental tap away, but it's also not important enough to earn a
+ * permanent button on every row.
  */
 export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
   const [cameras, setCameras] = useState<CameraDto[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [confirmDeleteSerial, setConfirmDeleteSerial] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const longPressTimer = useRef<number | null>(null)
+  const longPressFired = useRef(false)
 
   useEffect(() => {
     listMyCameras()
@@ -50,6 +58,42 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
       setError(message)
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  const startPress = (serial: string) => {
+    longPressFired.current = false
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true
+      setConfirmDeleteSerial(serial)
+    }, LONG_PRESS_MS)
+  }
+
+  const cancelPress = () => {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  const handleRowClick = (serial: string) => {
+    // The long-press timer already opened the delete confirmation — this
+    // click is just the same touch/click being released, not a new tap.
+    if (longPressFired.current) return
+    onOpenCamera(serial)
+  }
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteSerial) return
+    setDeleting(true)
+    try {
+      await removeMyCamera(confirmDeleteSerial)
+      setCameras((list) => (list ?? []).filter((c) => c.serial !== confirmDeleteSerial))
+      setConfirmDeleteSerial(null)
+    } catch (err) {
+      logEvent('error', `Remove failed: ${err instanceof ApiError ? err.message : String(err)}`)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -84,8 +128,12 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
             <button
               key={camera.serial}
               type="button"
-              onClick={() => onOpenCamera(camera.serial)}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted"
+              onPointerDown={() => startPress(camera.serial)}
+              onPointerUp={cancelPress}
+              onPointerLeave={cancelPress}
+              onPointerCancel={cancelPress}
+              onClick={() => handleRowClick(camera.serial)}
+              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors select-none hover:bg-muted"
             >
               <div className="min-w-0 flex-1">
                 <code className="block truncate font-mono text-sm font-semibold">{camera.serial}</code>
@@ -102,6 +150,36 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             </button>
           ))}
+        </div>
+      )}
+
+      {confirmDeleteSerial && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setConfirmDeleteSerial(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl border border-border bg-card p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase">
+              <AlertTriangle className="size-4 text-destructive" />
+              Delete from list?
+            </div>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">
+              <code className="text-foreground">{confirmDeleteSerial}</code> will be removed from
+              this list. This doesn't reset or disconnect the camera itself.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setConfirmDeleteSerial(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" className="flex-1" disabled={deleting} onClick={() => void confirmDelete()}>
+                {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                Delete
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -4,14 +4,13 @@ import { StreamTapPanel } from '@/components/StreamTapPanel'
 import { Button } from '@/components/ui/button'
 import { adminResetDevice, getDeviceStatus } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/config'
-import { removeMyCamera, updateMyCameraStatus } from '@/lib/api/myCamerasClient'
+import { updateMyCameraStatus } from '@/lib/api/myCamerasClient'
 import { logEvent } from '@/lib/debugLog'
 import { cn } from '@/lib/utils'
 
 interface CameraDetailScreenProps {
   serial: string
   onBack: () => void
-  onRemoved: () => void
 }
 
 function statusTone(status: string | null): string {
@@ -30,13 +29,12 @@ function statusTone(status: string | null): string {
  * of lines), reset below (~30%), status folded into a small badge in the
  * header instead of taking its own section.
  */
-export function CameraDetailScreen({ serial, onBack, onRemoved }: CameraDetailScreenProps) {
+export function CameraDetailScreen({ serial, onBack }: CameraDetailScreenProps) {
   const [status, setStatus] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(true)
 
   const [resetState, setResetState] = useState<'idle' | 'confirming' | 'resetting' | 'done' | 'error'>('idle')
   const [resetError, setResetError] = useState<string | null>(null)
-  const [removing, setRemoving] = useState(false)
 
   const checkStatus = async () => {
     setStatusLoading(true)
@@ -73,17 +71,6 @@ export function CameraDetailScreen({ serial, onBack, onRemoved }: CameraDetailSc
       logEvent('error', `Reset failed: ${message}`)
       setResetError(message)
       setResetState('error')
-    }
-  }
-
-  const handleRemove = async () => {
-    setRemoving(true)
-    try {
-      await removeMyCamera(serial)
-      onRemoved()
-    } catch (err) {
-      logEvent('error', `Remove failed: ${err instanceof ApiError ? err.message : String(err)}`)
-      setRemoving(false)
     }
   }
 
@@ -161,16 +148,6 @@ export function CameraDetailScreen({ serial, onBack, onRemoved }: CameraDetailSc
           )}
         </div>
       </div>
-
-      <button
-        type="button"
-        onClick={() => void handleRemove()}
-        disabled={removing}
-        className="flex items-center justify-center gap-2 py-1 text-xs font-medium text-muted-foreground hover:text-destructive"
-      >
-        {removing ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-        Remove from this list
-      </button>
     </div>
   )
 }

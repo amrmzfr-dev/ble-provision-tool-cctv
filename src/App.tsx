@@ -49,11 +49,7 @@ export default function App() {
         ) : view.name === 'my-cameras' ? (
           <MyCamerasScreen onOpenCamera={(serial) => setView({ name: 'camera-detail', serial })} />
         ) : (
-          <CameraDetailScreen
-            serial={view.serial}
-            onBack={() => setView({ name: 'my-cameras' })}
-            onRemoved={() => setView({ name: 'my-cameras' })}
-          />
+          <CameraDetailScreen serial={view.serial} onBack={() => setView({ name: 'my-cameras' })} />
         )}
       </div>
       <LogConsole />
