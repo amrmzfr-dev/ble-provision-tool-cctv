@@ -46,7 +46,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -54,6 +54,15 @@ jobs:
           tags: |
             ghcr.io/amrmzfr-dev/ble-provision-tool-cctv:prod
             ghcr.io/amrmzfr-dev/ble-provision-tool-cctv:${{ env.SHA_SHORT }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          push: true
+          tags: |
+            ghcr.io/amrmzfr-dev/ble-provision-tool-cctv-backend:prod
+            ghcr.io/amrmzfr-dev/ble-provision-tool-cctv-backend:${{ env.SHA_SHORT }}
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
@@ -71,7 +80,7 @@ jobs:
 
             pull_ok=false
             for i in 1 2 3; do
-              if docker compose -f docker-compose.prod.yml pull ble-provision; then
+              if docker compose -f docker-compose.prod.yml pull ble-provision ble-backend; then
                 pull_ok=true
                 break
               fi
@@ -82,11 +91,14 @@ jobs:
             done
 
             if [ "$pull_ok" != true ]; then
-              echo "All pull attempts failed; aborting deploy. Currently running container is left untouched."
+              echo "All pull attempts failed; aborting deploy. Currently running containers are left untouched."
               exit 1
             fi
 
-            docker compose -f docker-compose.prod.yml up -d --force-recreate ble-provision
+            # ble-postgres is deliberately not force-recreated — it only needs
+            # to exist and stay up, never rebuilt on every deploy.
+            docker compose -f docker-compose.prod.yml up -d ble-postgres
+            docker compose -f docker-compose.prod.yml up -d --force-recreate ble-backend ble-provision
             docker image prune -f || true
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

@@ -1,6 +1,5 @@
 import { ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { AdminKeyGate } from '@/components/AdminKeyGate'
 import { Button } from '@/components/ui/button'
 import { BackendHandoffScreen } from '@/components/screens/BackendHandoffScreen'
 import { FindDeviceScreen } from '@/components/screens/FindDeviceScreen'
@@ -9,7 +8,6 @@ import { ScanSerialScreen } from '@/components/screens/ScanSerialScreen'
 import { StreamScreen } from '@/components/screens/StreamScreen'
 import { WifiCredentialsScreen } from '@/components/screens/WifiCredentialsScreen'
 import { useBleScan } from '@/hooks/useBleScan'
-import { getAdminKey } from '@/lib/api/config'
 import { deviceMatchesSerial } from '@/lib/ble/serial'
 import { clearSessionState, loadSessionState, saveSessionState } from '@/lib/sessionState'
 import { cn } from '@/lib/utils'
@@ -46,7 +44,6 @@ export function DeviceScanner() {
   const [wifiPassword, setWifiPassword] = useState('')
   const [wifiError, setWifiError] = useState<string | null>(null)
   const [backendNotified, setBackendNotified] = useState(initialSession?.backendNotified ?? false)
-  const [showKeyGate, setShowKeyGate] = useState(false)
   const { device, error, scanning, scan, reset } = useBleScan()
 
   // Found -> straight to WiFi entry, no separate confirmation screen. The
@@ -134,15 +131,7 @@ export function DeviceScanner() {
               setWifiSsid(ssid)
               setWifiPassword(password)
               setWifiError(null)
-              // Gate pairing on having a key already saved — the whole point
-              // of the onWifiSent timing fix is that the backend gets
-              // notified with nothing in between it and the WiFi ack. Any
-              // pause here (typing in a key mid-pairing) reopens that race.
-              if (getAdminKey()) {
-                setStep('pairing')
-              } else {
-                setShowKeyGate(true)
-              }
+              setStep('pairing')
             }}
           />
         )}
@@ -179,15 +168,6 @@ export function DeviceScanner() {
 
         {step === 'stream' && <StreamScreen serial={serial} onBack={() => setStep('backend')} />}
       </div>
-
-      {showKeyGate && (
-        <AdminKeyGate
-          onContinue={() => {
-            setShowKeyGate(false)
-            setStep('pairing')
-          }}
-        />
-      )}
     </div>
   )
 }

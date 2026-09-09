@@ -57,9 +57,8 @@ export function listDevices(): Promise<DeviceListEntry[]> {
   return apiFetch('/devices')
 }
 
-/** Auth: client key or admin key, whichever is set — see API_REFERENCE.md. */
 export function getDeviceStatus(serial: string): Promise<DeviceStatus> {
-  return apiFetch(`/device/${serial}/status`, { auth: 'client-or-admin' })
+  return apiFetch(`/device/${serial}/status`)
 }
 
 export function reconnectDevice(serial: string): Promise<{ success: true }> {
@@ -72,14 +71,12 @@ export function getLicenseInfo(): Promise<Record<string, unknown>> {
 
 // ---- Provisioning — used by this app ----
 
-/** Auth: client key or admin key, whichever is set (confirmed via @require_client_or_admin_key in api_server_listen_mode.py — the docs originally said client-key-only, which was wrong). */
 export function postWifiConfigured(
   serial: string,
   req: WifiConfiguredRequest = {},
 ): Promise<WifiConfiguredResponse> {
   return apiFetch(`/device/${serial}/provisioning/wifi-configured`, {
     method: 'POST',
-    auth: 'client-or-admin',
     body: req,
   })
 }
@@ -163,25 +160,25 @@ export function stopStream(streamId: string, streamToken: string): Promise<{ suc
 }
 
 export function requestStreamToken(req: StreamTokenRequest): Promise<StreamTokenResponse> {
-  return apiFetch('/stream/token', { method: 'POST', auth: 'client', body: req })
+  return apiFetch('/stream/token', { method: 'POST', body: req })
 }
 
 // ---- Client Token Management ----
 
 export function listTokens(filter: { user_id?: string; device_serial?: string }): Promise<StreamTokenResponse[]> {
-  return apiFetch('/tokens', { auth: 'client', query: filter })
+  return apiFetch('/tokens', { query: filter })
 }
 
 export function getUserTokens(userId: string): Promise<StreamTokenResponse[]> {
-  return apiFetch(`/tokens/${userId}`, { auth: 'client' })
+  return apiFetch(`/tokens/${userId}`)
 }
 
 export function regenerateToken(userId: string): Promise<StreamTokenResponse> {
-  return apiFetch(`/tokens/${userId}/regenerate`, { method: 'POST', auth: 'client' })
+  return apiFetch(`/tokens/${userId}/regenerate`, { method: 'POST' })
 }
 
 export function revokeToken(token: string): Promise<{ success: true }> {
-  return apiFetch(`/tokens/${token}/revoke`, { method: 'POST', auth: 'client' })
+  return apiFetch(`/tokens/${token}/revoke`, { method: 'POST' })
 }
 
 // ---- Admin — Auth ----
@@ -198,22 +195,22 @@ export function adminLogout(): Promise<{ success: true }> {
 // ---- Admin — Users CRUD ----
 
 export function adminListUsers(): Promise<AdminUser[]> {
-  return apiFetch('/admin/users', { auth: 'admin' })
+  return apiFetch('/admin/users')
 }
 
 export function adminCreateUser(req: { username: string; password: string; role: 'admin' | 'operator' }): Promise<AdminUser> {
-  return apiFetch('/admin/users', { method: 'POST', auth: 'admin', body: req })
+  return apiFetch('/admin/users', { method: 'POST', body: req })
 }
 
 export function adminUpdateUser(
   username: string,
   req: Partial<{ password: string; role: 'admin' | 'operator'; is_active: boolean }>,
 ): Promise<AdminUser> {
-  return apiFetch(`/admin/users/${username}`, { method: 'PUT', auth: 'admin', body: req })
+  return apiFetch(`/admin/users/${username}`, { method: 'PUT', body: req })
 }
 
 export function adminDeleteUser(username: string): Promise<{ success: true }> {
-  return apiFetch(`/admin/users/${username}`, { method: 'DELETE', auth: 'admin' })
+  return apiFetch(`/admin/users/${username}`, { method: 'DELETE' })
 }
 
 // ---- Admin — Device Management ----
@@ -229,28 +226,27 @@ export function adminDeleteUser(username: string): Promise<{ success: true }> {
 export function adminResetDevice(serial: string, factoryReset = true): Promise<{ success: true }> {
   return apiFetch(`/admin/device/${serial}/reset`, {
     method: 'POST',
-    auth: 'admin',
     body: { factory_reset: factoryReset, confirm: true },
   })
 }
 
 export function adminSyncDeviceTime(serial: string): Promise<{ success: true }> {
-  return apiFetch(`/admin/device/${serial}/sync-time`, { method: 'POST', auth: 'admin' })
+  return apiFetch(`/admin/device/${serial}/sync-time`, { method: 'POST' })
 }
 
 export function adminGetDevice(serial: string): Promise<AdminCameraEntry> {
-  return apiFetch(`/admin/device/${serial}`, { auth: 'admin' })
+  return apiFetch(`/admin/device/${serial}`)
 }
 
 export function adminGetDeviceStorage(serial: string): Promise<Record<string, unknown>> {
-  return apiFetch(`/admin/device/${serial}/storage`, { auth: 'admin' })
+  return apiFetch(`/admin/device/${serial}/storage`)
 }
 
 export function adminGetDeviceRecordings(
   serial: string,
   query: { channel?: number; start_time: string; end_time: string; type?: string },
 ): Promise<Record<string, unknown>> {
-  return apiFetch(`/admin/device/${serial}/recordings`, { auth: 'admin', query })
+  return apiFetch(`/admin/device/${serial}/recordings`, { query })
 }
 
 export function adminGetDevicePlaybackUrl(serial: string): string {
@@ -258,7 +254,7 @@ export function adminGetDevicePlaybackUrl(serial: string): string {
 }
 
 export function adminListCameras(): Promise<AdminCameraEntry[]> {
-  return apiFetch('/admin/cameras', { auth: 'admin' })
+  return apiFetch('/admin/cameras')
 }
 
 export function adminGetStreamUrl(streamUuid: string): string {
@@ -268,29 +264,29 @@ export function adminGetStreamUrl(streamUuid: string): string {
 // ---- Admin — Tokens & Client Key ----
 
 export function adminListTokens(): Promise<StreamTokenResponse[]> {
-  return apiFetch('/admin/tokens', { auth: 'admin' })
+  return apiFetch('/admin/tokens')
 }
 
 export function adminGetUserTokens(userId: string): Promise<StreamTokenResponse[]> {
-  return apiFetch(`/admin/tokens/${userId}`, { auth: 'admin' })
+  return apiFetch(`/admin/tokens/${userId}`)
 }
 
 export function adminGetDeviceTokens(deviceSerial: string): Promise<StreamTokenResponse[]> {
-  return apiFetch(`/admin/tokens/device/${deviceSerial}`, { auth: 'admin' })
+  return apiFetch(`/admin/tokens/device/${deviceSerial}`)
 }
 
 export function adminRevokeToken(tokenId: string): Promise<{ success: true }> {
-  return apiFetch(`/admin/tokens/${tokenId}/revoke`, { method: 'POST', auth: 'admin' })
+  return apiFetch(`/admin/tokens/${tokenId}/revoke`, { method: 'POST' })
 }
 
 export function adminInitializeClientKey(): Promise<{ success: true; client_key: string }> {
-  return apiFetch('/admin/client-key/initialize', { method: 'POST', auth: 'admin' })
+  return apiFetch('/admin/client-key/initialize', { method: 'POST' })
 }
 
 export function adminGetClientKeyMeta(): Promise<{ created_at: string; last_rotated_at: string | null }> {
-  return apiFetch('/admin/client-key', { auth: 'admin' })
+  return apiFetch('/admin/client-key')
 }
 
 export function adminRotateClientKey(): Promise<{ success: true; client_key: string }> {
-  return apiFetch('/admin/client-key/rotate', { method: 'POST', auth: 'admin' })
+  return apiFetch('/admin/client-key/rotate', { method: 'POST' })
 }

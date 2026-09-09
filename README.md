@@ -50,9 +50,47 @@ typing the serial in) as step 1, before it will search for the device over Bluet
       preview" below. It follows the same UUID-freshness rule as `AndroidOpenDemo`'s
       `DeviceDetailActivity` → `AdminStreamActivity`: never cache or reconstruct a stream UUID, call
       `GET /api/admin/device/<serial>` fresh right before opening the stream and use whatever
-      `admin_stream_url` comes back at that moment. User-binding (`register_credentials`, stream
-      tokens) is the production client app's job, not this admin-key-driven testing tool — left
-      unwired on purpose.
+      `admin_stream_url` comes back at that moment. Has Stop/Start controls and shows each chunk as
+      its own log line (like the backend's own `[STREAM_DATA] Received frame N` logging), not a
+      summary tile. User-binding (`register_credentials`, stream tokens) is the production client
+      app's job, not this tool — left unwired on purpose.
+- [x] Phase 7 (added per a later ask) — a mini backend (`backend/`, ASP.NET Core + PostgreSQL, see
+      "The mini backend" below) that replaces the browser-held admin key with a real login, and adds
+      a persistent "My Cameras" list so a tested camera can be revisited (status/stream/reset)
+      without redoing the whole scan-and-pair flow.
+
+## The mini backend
+
+`backend/` (`BleProvisionApi`, ASP.NET Core + EF Core + PostgreSQL) sits between this frontend and
+the real camera backend. Three jobs:
+
+1. **Holds `cctv.czeros.tech`'s admin key server-side.** The browser used to hold it directly in
+   `localStorage` (via `AdminKeyGate`, now deleted) and send it on every request — anyone who opened
+   devtools could read it. Now the browser only ever holds a login (JWT) for *this* backend; every
+   `/api/device/*`, `/api/admin/*`, etc. call gets forwarded by `ProxyController`/`CctvBackendProxy`
+   with the real key attached, never exposed to the browser. The streamed admin video endpoint is
+   forwarded the same way, with `HttpCompletionOption.ResponseHeadersRead` + direct stream copying
+   so it doesn't buffer the (effectively infinite) live response — the same class of bug already hit
+   once with nginx's default `proxy_buffering`, avoided one layer deeper here.
+2. **Gates the whole app behind a real login** (`AuthController`, JWT via
+   `Microsoft.AspNetCore.Authentication.JwtBearer`) — `LoginScreen.tsx` replaced the old
+   admin-key-prompt gate. One account is seeded from env vars on first boot
+   (`SEED_ADMIN_USERNAME`/`SEED_ADMIN_PASSWORD`); anyone logged in can create more via
+   `POST /api/auth/users` — no separate admin role, this is a small internal tool.
+3. **"My Cameras"** (`MyCamerasController`, `MyCamerasScreen.tsx`) — a personal revisit list, not an
+   event log: one row per serial, upserted automatically the moment `BackendHandoffScreen` sees
+   `connected` during pairing. Each row can refresh its live status, jump into `StreamScreen`, or
+   trigger `adminResetDevice` — all without redoing Bluetooth discovery. The real camera backend
+   remains the source of truth for actual device state; this table just remembers which serials this
+   tool has touched.
+
+**Deployment:** `docker-compose.prod.yml` adds `ble-backend` (this API) and `ble-postgres` alongside
+the existing `ble-provision` frontend container, all on the same `ble-provision-network`.
+`nginx.conf`'s `/api/*` proxy now points at `http://ble-backend:8080/api/` instead of straight to
+`cctv.czeros.tech` — the mini backend does that forwarding itself now. Needs a `.env` next to
+`docker-compose.prod.yml` on the VPS (see `.env.example` — `POSTGRES_PASSWORD`, `JWT_SECRET`,
+`CCTV_ADMIN_KEY`, `SEED_ADMIN_USERNAME`/`SEED_ADMIN_PASSWORD`; never committed). EF Core migrations
+apply automatically on startup (`db.Database.Migrate()` in `Program.cs`) — no manual migration step.
 
 ### Why there's no video preview — the camera streams H.265
 
@@ -173,10 +211,11 @@ VPS as the EV installation site (not the camera backend's VPS). `.github/workflo
 builds and pushes an image to `ghcr.io/amrmzfr-dev/ble-provision-tool-cctv`, then SSHes in and runs
 `docker compose -f docker-compose.prod.yml up -d`.
 
-The container's own nginx (`nginx.conf`) proxies `/api/*` to `https://cctv.czeros.tech` server-side
-(the camera backend's actual public domain — its nginx on 56.68.52.66 is the only thing serving it),
-so the browser only ever talks to `cctv-provision.czeros.tech` — same-origin, no CORS config needed
-on the camera backend.
+The container's own nginx (`nginx.conf`) proxies `/api/*` to the mini backend
+(`http://ble-backend:8080/api/`, see "The mini backend" above) — not straight to
+`https://cctv.czeros.tech` anymore, though that's still where it ends up: browser → this nginx →
+`ble-backend` → `cctv.czeros.tech`. The browser only ever talks to `cctv-provision.czeros.tech` —
+same-origin the whole way, no CORS config needed anywhere in the chain.
 
 ### A real DNS mix-up — `api.czeros.tech` vs `cctv.czeros.tech`
 
@@ -192,7 +231,9 @@ there's an old, disabled `cctv-api.backup` config for `api.czeros.tech` that was
 Symptom this caused: every WiFi-configured notification and status poll silently succeeded against
 the wrong host, so `BackendHandoffScreen` sat at "waiting for the camera to come online" forever —
 not because of the wifi-configured timing bug (already fixed, see below), but because the app
-wasn't even asking the real backend. Fixed by pointing `nginx.conf`'s proxy at `cctv.czeros.tech`.
+wasn't even asking the real backend. Fixed at the time by pointing `nginx.conf`'s proxy at
+`cctv.czeros.tech` directly; now it points at `ble-backend`, which does that forwarding itself (see
+"The mini backend" above) — same end destination, one more hop.
 
 **One-time setup this repo cannot do for you** (needs access to GitHub repo settings, DNS, and the
 VPS):
@@ -202,8 +243,14 @@ VPS):
    `VPS_SSH_KEY`, `VPS_PORT`, `GHCR_TOKEN` — same values already used by the `fullstack-ev-installation`
    repo's secrets, since it's the same VPS.
 3. DNS: add an A record for `cctv-provision.czeros.tech` pointing at the EV VPS's IP.
-4. On the VPS: `mkdir -p /opt/ble-provision-tool-cctv-prod`, copy `docker-compose.prod.yml` there.
+4. On the VPS: `mkdir -p /opt/ble-provision-tool-cctv-prod`, copy `docker-compose.prod.yml` there,
+   then copy `.env.example` to `.env` in that same directory and fill in real values
+   (`POSTGRES_PASSWORD`, `JWT_SECRET`, `CCTV_ADMIN_KEY`, `SEED_ADMIN_USERNAME`/`SEED_ADMIN_PASSWORD`)
+   — never commit this file.
 5. On the VPS, add a host-level nginx server block for `cctv-provision.czeros.tech` proxying to
    `127.0.0.1:3010` (check that port is actually free first — `ev-frontend-prod` already uses 3000),
    then get a cert: `sudo certbot --nginx -d cctv-provision.czeros.tech`.
-6. Push to `main` (or run the workflow manually) to trigger the first deploy.
+6. Push to `main` (or run the workflow manually) to trigger the first deploy — this builds and
+   pushes both `ble-provision-tool-cctv` and `ble-provision-tool-cctv-backend` images, then brings
+   up all three services (`ble-provision`, `ble-backend`, `ble-postgres`) via `docker compose up -d`.
+   The backend applies its own EF Core migrations and seeds the first login on startup.

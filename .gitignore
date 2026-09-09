@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# .NET backend build output
+backend/bin
+backend/obj
+
+# Secrets for docker-compose.prod.yml (POSTGRES_PASSWORD, JWT_SECRET,
+# CCTV_ADMIN_KEY, SEED_ADMIN_*) — see .env.example. Never commit the real one.
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

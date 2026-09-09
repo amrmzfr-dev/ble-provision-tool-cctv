@@ -9,9 +9,50 @@ services:
       # with `docker ps` / `ss -tlnp` before first deploy and change if needed —
       # update the matching host nginx `proxy_pass` line to match.
       - "3010:80"
+    depends_on:
+      - ble-backend
+    networks:
+      - ble-provision-network
+
+  # Mini backend: holds the real camera backend's X-Admin-Key server-side (the
+  # browser never sees it — this replaced the old AdminKeyGate/localStorage
+  # key approach entirely), gates the whole app behind a real login, and
+  # keeps a personal "My Cameras" revisit list. nginx.conf's /api/* proxy
+  # points here now instead of straight to cctv.czeros.tech; this service
+  # forwards everything it doesn't own itself (auth, mycameras) on to the
+  # real backend with the admin key attached.
+  ble-backend:
+    image: ghcr.io/amrmzfr-dev/ble-provision-tool-cctv-backend:prod
+    container_name: ble-provision-backend-prod
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Default: "Host=ble-postgres;Port=5432;Database=${POSTGRES_DB:-ble_provision};Username=${POSTGRES_USER:-ble_provision};Password=${POSTGRES_PASSWORD}"
+      Jwt__Secret: "${JWT_SECRET}"
+      CctvBackend__BaseUrl: "https://cctv.czeros.tech"
+      CctvBackend__AdminKey: "${CCTV_ADMIN_KEY}"
+      Seed__AdminUsername: "${SEED_ADMIN_USERNAME}"
+      Seed__AdminPassword: "${SEED_ADMIN_PASSWORD}"
+    depends_on:
+      - ble-postgres
+    networks:
+      - ble-provision-network
+
+  ble-postgres:
+    image: postgres:16-alpine
+    container_name: ble-provision-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-ble_provision}"
+      POSTGRES_USER: "${POSTGRES_USER:-ble_provision}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - ble-postgres-data:/var/lib/postgresql/data
     networks:
       - ble-provision-network
 
 networks:
   ble-provision-network:
     driver: bridge
+
+volumes:
+  ble-postgres-data:

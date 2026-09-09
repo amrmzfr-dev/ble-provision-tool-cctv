@@ -1,9 +1,9 @@
-import { AlertTriangle, CheckCircle2, KeyRound, Loader2, RotateCcw, Trash2, Video, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, RotateCcw, Trash2, Video, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { adminResetDevice, getDeviceStatus, postWifiConfigured } from '@/lib/api/client'
-import { ApiError, getAdminKey, setAdminKey } from '@/lib/api/config'
+import { ApiError } from '@/lib/api/config'
+import { upsertMyCamera } from '@/lib/api/myCamerasClient'
 import type { DeviceStatus } from '@/lib/api/types'
 import { logEvent } from '@/lib/debugLog'
 
@@ -21,14 +21,10 @@ interface BackendHandoffScreenProps {
   onCancel: () => void
 }
 
-type Phase = 'need-key' | 'submitting' | 'waiting' | 'connected' | 'failed'
+type Phase = 'submitting' | 'waiting' | 'connected' | 'failed'
 
 export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryWifi, onViewStream, onCancel }: BackendHandoffScreenProps) {
-  const [phase, setPhase] = useState<Phase>(() => {
-    if (alreadyNotified) return 'waiting'
-    return getAdminKey() ? 'submitting' : 'need-key'
-  })
-  const [keyInput, setKeyInput] = useState('')
+  const [phase, setPhase] = useState<Phase>(alreadyNotified ? 'waiting' : 'submitting')
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pollStartRef = useRef<number | null>(alreadyNotified ? Date.now() : null)
@@ -75,6 +71,11 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
         if (result.status === 'connected') {
           logEvent('success', 'Camera connected')
           setPhase('connected')
+          // Fire-and-forget — this is what builds the "My Cameras" list, but
+          // it never blocks or fails the pairing flow itself if it errors.
+          upsertMyCamera(serial).catch((err: unknown) => {
+            logEvent('error', `Could not save to My Cameras: ${err instanceof ApiError ? err.message : String(err)}`)
+          })
           return
         }
         if (['connection_timeout', 'login_failed', 'password_error', 'serial_mismatch'].includes(result.status)) {
@@ -136,37 +137,6 @@ export function BackendHandoffScreen({ serial, alreadyNotified, onDone, onRetryW
           Connecting to the server
         </h2>
       </div>
-
-      {phase === 'need-key' && (
-        <div className="flex flex-1 flex-col gap-3 rounded-2xl border border-border bg-card p-5">
-          <span className="flex items-center gap-2 text-sm font-semibold uppercase tracking-tight">
-            <KeyRound className="size-4" />
-            Admin API key needed
-          </span>
-          <p className="text-xs text-muted-foreground">
-            Needed to tell the backend WiFi was configured. Kept only in this browser
-            (localStorage), never sent anywhere but cctv.czeros.tech.
-          </p>
-          <Input
-            autoFocus
-            type="password"
-            placeholder="X-Admin-Key"
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-          />
-          <div className="flex-1" />
-          <Button
-            disabled={!keyInput}
-            onClick={() => {
-              setAdminKey(keyInput)
-              setPhase('submitting')
-            }}
-            size="lg"
-          >
-            Continue
-          </Button>
-        </div>
-      )}
 
       {(phase === 'submitting' || phase === 'waiting') && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-5 text-center">

@@ -1,31 +1,20 @@
-import { Bluetooth, Moon, Sun } from 'lucide-react'
-import { useEffect } from 'react'
+import { Bluetooth, Camera as CameraIcon, LogOut, Moon, Sun } from 'lucide-react'
+import { useState, useSyncExternalStore } from 'react'
 import { DeviceScanner } from '@/components/DeviceScanner'
+import { LoginScreen } from '@/components/LoginScreen'
 import { LogConsole } from '@/components/LogConsole'
+import { MyCamerasScreen } from '@/components/screens/MyCamerasScreen'
+import { StreamScreen } from '@/components/screens/StreamScreen'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
-import { setAdminKey } from '@/lib/api/config'
+import { clearAuthToken, getAuthToken, subscribeAuthToken } from '@/lib/api/config'
 
-// Lets a bookmarked/shared link carry the admin key so it only needs
-// entering once per device instead of every time the prompt appears — the
-// key itself never lives in this file or the built bundle, only the logic
-// to pick it up from the URL and immediately scrub it from the address bar.
-function useAdminKeyFromUrl(): void {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const key = params.get('adminKey')
-    if (!key) return
-
-    setAdminKey(key)
-    params.delete('adminKey')
-    const rest = params.toString()
-    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''))
-  }, [])
-}
+type View = { name: 'pairing' } | { name: 'my-cameras' } | { name: 'stream'; serial: string }
 
 export default function App() {
   const { theme, toggleTheme } = useTheme()
-  useAdminKeyFromUrl()
+  const authToken = useSyncExternalStore(subscribeAuthToken, getAuthToken)
+  const [view, setView] = useState<View>({ name: 'pairing' })
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-background text-foreground">
@@ -48,17 +37,52 @@ export default function App() {
               </h1>
             </div>
           </div>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="border border-border"
-          >
-            {theme === 'dark' ? <Sun /> : <Moon />}
-          </Button>
+          <div className="flex gap-2">
+            {authToken && (
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => setView(view.name === 'pairing' ? { name: 'my-cameras' } : { name: 'pairing' })}
+                aria-label={view.name === 'pairing' ? 'My cameras' : 'New pairing'}
+                className="border border-border"
+              >
+                {view.name === 'pairing' ? <CameraIcon /> : <Bluetooth />}
+              </Button>
+            )}
+            {authToken && (
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={clearAuthToken}
+                aria-label="Sign out"
+                className="border border-border"
+              >
+                <LogOut />
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              className="border border-border"
+            >
+              {theme === 'dark' ? <Sun /> : <Moon />}
+            </Button>
+          </div>
         </div>
-        <DeviceScanner />
+        {!authToken ? (
+          <LoginScreen />
+        ) : view.name === 'pairing' ? (
+          <DeviceScanner />
+        ) : view.name === 'my-cameras' ? (
+          <MyCamerasScreen
+            onBack={() => setView({ name: 'pairing' })}
+            onOpenStream={(serial) => setView({ name: 'stream', serial })}
+          />
+        ) : (
+          <StreamScreen serial={view.serial} onBack={() => setView({ name: 'my-cameras' })} />
+        )}
       </div>
       <LogConsole />
     </div>
