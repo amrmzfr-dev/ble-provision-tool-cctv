@@ -1,5 +1,14 @@
-import md5 from 'js-md5'
+import { md5 } from 'js-md5'
 import forge from 'node-forge'
+
+// TS 5.7+'s stricter typed-array generics mean a plain `Uint8Array` (typed
+// `Uint8Array<ArrayBufferLike>`, which includes SharedArrayBuffer) no longer
+// satisfies `BufferSource` (which wants `ArrayBufferView<ArrayBuffer>`)
+// without help. These Uint8Arrays are always backed by real, non-shared
+// ArrayBuffers at runtime, so the cast is safe.
+function asBufferSource(bytes: Uint8Array): BufferSource {
+  return bytes as BufferSource
+}
 
 // WebCrypto deliberately doesn't implement RSAES-PKCS1-v1_5 decryption (only
 // keygen/encrypt for some profiles), which the camera's handshake requires.
@@ -74,7 +83,7 @@ export function deriveSessionKey(secret: Uint8Array): SessionKey {
     )
   }
 
-  const digestBytes = md5.array(secret) as number[]
+  const digestBytes = md5.array(secret)
   const hex = digestBytes.map((b) => b.toString(16).padStart(2, '0')).join('')
   const key = new TextEncoder().encode(hex)
 
@@ -82,18 +91,26 @@ export function deriveSessionKey(secret: Uint8Array): SessionKey {
 }
 
 async function importAesKey(keyBytes: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey('raw', keyBytes, 'AES-CBC', false, ['encrypt', 'decrypt'])
+  return crypto.subtle.importKey('raw', asBufferSource(keyBytes), 'AES-CBC', false, ['encrypt', 'decrypt'])
 }
 
 /** AES-256-CBC/PKCS7 — WebCrypto's AES-CBC pads/unpads with PKCS7 natively, which is byte-for-byte the same as Java's PKCS5Padding at a 16-byte block size. */
 export async function aesCbcEncrypt(data: Uint8Array, session: SessionKey): Promise<Uint8Array> {
   const cryptoKey = await importAesKey(session.key)
-  const cipher = await crypto.subtle.encrypt({ name: 'AES-CBC', iv: session.iv }, cryptoKey, data)
+  const cipher = await crypto.subtle.encrypt(
+    { name: 'AES-CBC', iv: asBufferSource(session.iv) },
+    cryptoKey,
+    asBufferSource(data),
+  )
   return new Uint8Array(cipher)
 }
 
 export async function aesCbcDecrypt(data: Uint8Array, session: SessionKey): Promise<Uint8Array> {
   const cryptoKey = await importAesKey(session.key)
-  const plain = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: session.iv }, cryptoKey, data)
+  const plain = await crypto.subtle.decrypt(
+    { name: 'AES-CBC', iv: asBufferSource(session.iv) },
+    cryptoKey,
+    asBufferSource(data),
+  )
   return new Uint8Array(plain)
 }

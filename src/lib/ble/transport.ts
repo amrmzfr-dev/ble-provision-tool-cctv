@@ -9,13 +9,16 @@ import { fragmentFrame, FrameAssembler, type AssembledFrame } from './framing'
  * provision.ts, which knows the actual protocol semantics.
  */
 export class BleTransport {
+  private device: BluetoothDevice
   private server: BluetoothRemoteGATTServer | null = null
   private writeChar: BluetoothRemoteGATTCharacteristic | null = null
   private notifyChar: BluetoothRemoteGATTCharacteristic | null = null
   private assembler = new FrameAssembler()
   private pending: { resolve: (f: AssembledFrame) => void; reject: (e: Error) => void } | null = null
 
-  constructor(private device: BluetoothDevice) {}
+  constructor(device: BluetoothDevice) {
+    this.device = device
+  }
 
   async connect(): Promise<void> {
     if (!this.device.gatt) throw new Error('This device has no GATT server')
@@ -64,7 +67,10 @@ export class BleTransport {
   private async writeFragments(fragments: Uint8Array[]): Promise<void> {
     if (!this.writeChar) throw new Error('Not connected')
     for (const fragment of fragments) {
-      await this.writeChar.writeValueWithResponse(fragment)
+      // TS 5.7+'s stricter typed-array generics mean a plain Uint8Array no
+      // longer satisfies BufferSource without help — safe here since this
+      // is always backed by a real, non-shared ArrayBuffer at runtime.
+      await this.writeChar.writeValueWithResponse(fragment as BufferSource)
     }
   }
 
