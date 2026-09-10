@@ -41,20 +41,24 @@ export function LoginScreen() {
         <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Sign in</h2>
         <p className="mt-1 text-sm text-muted-foreground">CCTV pairing tool for testers</p>
       </div>
-      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3" autoComplete="off">
         <Input
           autoFocus
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          autoComplete="username"
+          autoComplete="off"
+          data-1p-ignore
+          data-lpignore="true"
         />
         <Input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
+          autoComplete="new-password"
+          data-1p-ignore
+          data-lpignore="true"
         />
         {error && <p className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
         <Button type="submit" size="lg" disabled={loading || !username || !password}>
