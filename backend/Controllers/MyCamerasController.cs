@@ -14,17 +14,41 @@ public record CameraDto(string Serial, string? Label, string? LastStatus, DateTi
 [Route("api/mycameras")]
 public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogger<MyCamerasController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Every endpoint here is scoped to whoever's logged in - this list is
+    /// personal, not shared: pairing a camera binds it to your account only,
+    /// and it never shows up for anyone else. The full cross-account picture
+    /// (who configured/tested what) lives only in the admin dashboard
+    /// (DashboardController), not here.
+    /// </summary>
+    private int? CurrentUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
     [HttpGet]
     public async Task<ActionResult<List<CameraDto>>> List()
     {
+        var userId = CurrentUserId();
         var cameras = await db.Cameras
+            .Where(c => c.AddedByUserId == userId)
             .OrderByDescending(c => c.AddedAt)
             .Select(c => new CameraDto(c.Serial, c.Label, c.LastStatus, c.LastStatusAt, c.AddedAt))
             .ToListAsync();
         return Ok(cameras);
     }
 
-    /// <summary>Upsert - called automatically once pairing reaches "connected", so this list builds itself as cameras get tested. Also callable manually to add a serial without re-pairing.</summary>
+    /// <summary>
+    /// Upsert - called automatically once pairing reaches "connected", so
+    /// this list builds itself as cameras get tested. Also callable manually
+    /// to add a serial without re-pairing. Always claims/re-claims ownership
+    /// for whoever's calling this, even if the serial already belonged to
+    /// someone else (e.g. a camera factory-reset and re-paired by a
+    /// different tester) - it moves to the new owner's list and off the old
+    /// one's, since "who configured it" should reflect the most recent real
+    /// pairing, not the first one ever.
+    /// </summary>
     [HttpPost]
     public async Task<ActionResult<CameraDto>> Upsert(UpsertCameraRequest request)
     {
@@ -33,15 +57,16 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
             return BadRequest(new { error = "invalid_input", message = "Serial is required." });
         }
 
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        int? userId = int.TryParse(userIdClaim, out var parsed) ? parsed : null;
+        var userId = CurrentUserId();
 
         var camera = await db.Cameras.SingleOrDefaultAsync(c => c.Serial == request.Serial);
         if (camera is null)
         {
-            camera = new Camera { Serial = request.Serial, AddedByUserId = userId };
+            camera = new Camera { Serial = request.Serial };
             db.Cameras.Add(camera);
         }
+        camera.AddedByUserId = userId;
+        camera.AddedAt = DateTimeOffset.UtcNow;
         if (request.Label is not null) camera.Label = request.Label;
 
         await db.SaveChangesAsync();
@@ -62,11 +87,11 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
     [HttpPut("{serial}/status")]
     public async Task<IActionResult> UpdateStatus(string serial, [FromBody] string status)
     {
-        var camera = await db.Cameras.SingleOrDefaultAsync(c => c.Serial == serial);
+        var userId = CurrentUserId();
+        var camera = await db.Cameras.SingleOrDefaultAsync(c => c.Serial == serial && c.AddedByUserId == userId);
         if (camera is null) return NotFound(new { error = "not_in_list" });
 
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (int.TryParse(userIdClaim, out var userId)) camera.LastCheckedByUserId = userId;
+        camera.LastCheckedByUserId = userId;
 
         camera.LastStatus = status;
         camera.LastStatusAt = DateTimeOffset.UtcNow;
@@ -84,7 +109,8 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
     [HttpPost("refresh")]
     public async Task<ActionResult<List<CameraDto>>> RefreshAll()
     {
-        var cameras = await db.Cameras.ToListAsync();
+        var userId = CurrentUserId();
+        var cameras = await db.Cameras.Where(c => c.AddedByUserId == userId).ToListAsync();
         if (cameras.Count == 0) return Ok(new List<CameraDto>());
 
         System.Text.Json.JsonElement bulk;
@@ -134,7 +160,8 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
     [HttpDelete("{serial}")]
     public async Task<IActionResult> Remove(string serial)
     {
-        var camera = await db.Cameras.SingleOrDefaultAsync(c => c.Serial == serial);
+        var userId = CurrentUserId();
+        var camera = await db.Cameras.SingleOrDefaultAsync(c => c.Serial == serial && c.AddedByUserId == userId);
         if (camera is null) return NotFound();
 
         db.Cameras.Remove(camera);
