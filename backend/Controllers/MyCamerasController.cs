@@ -124,10 +124,15 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
             return StatusCode(StatusCodes.Status502BadGateway, new { error = "backend_unreachable", message = ex.Message });
         }
 
+        // The real backend wraps this in {"total": N, "cameras": [...]}, not a
+        // bare array - this previously checked bulk.ValueKind == Array directly,
+        // which is never true for an object, so this loop silently never ran
+        // and no camera's status was ever actually refreshed by this endpoint
+        // (or the background auto-poll on the list screen that calls it).
         var statusBySerial = new Dictionary<string, string>();
-        if (bulk.ValueKind == System.Text.Json.JsonValueKind.Array)
+        if (bulk.TryGetProperty("cameras", out var camerasArray) && camerasArray.ValueKind == System.Text.Json.JsonValueKind.Array)
         {
-            foreach (var entry in bulk.EnumerateArray())
+            foreach (var entry in camerasArray.EnumerateArray())
             {
                 if (entry.TryGetProperty("serial", out var serialProp) &&
                     entry.TryGetProperty("status", out var statusProp) &&

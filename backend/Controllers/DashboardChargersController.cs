@@ -54,10 +54,12 @@ public class DashboardChargersController(CctvBackendProxy proxy, AppDbContext db
             .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.DisplayName);
 
+        // The real backend wraps this in {"total": N, "cameras": [...]}, not a
+        // bare array.
         var result = new List<DashboardChargerDto>();
-        if (bulk.ValueKind == JsonValueKind.Array)
+        if (bulk.TryGetProperty("cameras", out var camerasArray) && camerasArray.ValueKind == JsonValueKind.Array)
         {
-            foreach (var entry in bulk.EnumerateArray())
+            foreach (var entry in camerasArray.EnumerateArray())
             {
                 if (!entry.TryGetProperty("serial", out var serialProp) || serialProp.GetString() is not { } serial)
                 {
