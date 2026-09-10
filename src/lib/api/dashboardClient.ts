@@ -7,6 +7,7 @@ export interface DashboardCamera {
   lastStatusAt: string | null
   addedAt: string
   configuredByUsername: string | null
+  configuredByName: string | null
   lastCheckedByUsername: string | null
 }
 

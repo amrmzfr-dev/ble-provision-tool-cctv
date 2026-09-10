@@ -96,6 +96,7 @@ export function DashboardLedger({ theme, onToggleTheme, onLogout }: DashboardLed
                   <th className="p-3 font-semibold">Serial</th>
                   <th className="p-3 font-semibold">Status</th>
                   <th className="p-3 font-semibold">Configured by</th>
+                  <th className="p-3 font-semibold">PIC name</th>
                   <th className="p-3 font-semibold">Configured at</th>
                   <th className="p-3 font-semibold">Last tested by</th>
                   <th className="p-3 font-semibold">Last tested at</th>
@@ -111,6 +112,7 @@ export function DashboardLedger({ theme, onToggleTheme, onLogout }: DashboardLed
                       </span>
                     </td>
                     <td className="p-3">{c.configuredByUsername ?? '—'}</td>
+                    <td className="p-3 font-medium">{c.configuredByName ?? '—'}</td>
                     <td className="p-3 text-muted-foreground">{formatDate(c.addedAt)}</td>
                     <td className="p-3">{c.lastCheckedByUsername ?? '—'}</td>
                     <td className="p-3 text-muted-foreground">{formatDate(c.lastStatusAt)}</td>

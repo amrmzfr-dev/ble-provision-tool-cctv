@@ -12,6 +12,7 @@ public record DashboardCameraDto(
     DateTimeOffset? LastStatusAt,
     DateTimeOffset AddedAt,
     string? ConfiguredByUsername,
+    string? ConfiguredByName,
     string? LastCheckedByUsername
 );
 
@@ -39,9 +40,9 @@ public class DashboardController(AppDbContext db) : ControllerBase
             .Distinct()
             .ToList();
 
-        var usernameById = await db.Users
+        var usersById = await db.Users
             .Where(u => userIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.Username);
+            .ToDictionaryAsync(u => u.Id, u => new { u.Username, u.DisplayName });
 
         var result = cameras.Select(c => new DashboardCameraDto(
             c.Serial,
@@ -49,8 +50,9 @@ public class DashboardController(AppDbContext db) : ControllerBase
             c.LastStatus,
             c.LastStatusAt,
             c.AddedAt,
-            c.AddedByUserId.HasValue && usernameById.TryGetValue(c.AddedByUserId.Value, out var configuredBy) ? configuredBy : null,
-            c.LastCheckedByUserId.HasValue && usernameById.TryGetValue(c.LastCheckedByUserId.Value, out var checkedBy) ? checkedBy : null
+            c.AddedByUserId.HasValue && usersById.TryGetValue(c.AddedByUserId.Value, out var configuredBy) ? configuredBy.Username : null,
+            c.AddedByUserId.HasValue && usersById.TryGetValue(c.AddedByUserId.Value, out var configuredByName) ? configuredByName.DisplayName : null,
+            c.LastCheckedByUserId.HasValue && usersById.TryGetValue(c.LastCheckedByUserId.Value, out var checkedBy) ? checkedBy.Username : null
         ));
 
         return Ok(result);
