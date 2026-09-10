@@ -113,8 +113,7 @@ export function StreamTapPanel({
       </div>
 
       <p className="shrink-0 text-justify font-mono text-xs text-muted-foreground">
-        This app can't play the video itself. But if logs are coming in below, the camera really
-        is streaming live.
+        No video stream will be shown here - the logs above act as proof it's actually streaming.
       </p>
 
       {/* One button, not two/three side by side with the rest invisible - it

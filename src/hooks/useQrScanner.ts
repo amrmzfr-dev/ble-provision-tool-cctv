@@ -86,6 +86,23 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
         // still better than nothing if neither takes.
       }
 
+      // Start zoomed in to 150% (1.5x) by default - small QR codes are hard
+      // to fill the frame with at arm's length otherwise. `zoom` is a real,
+      // clamped capability (unlike focusMode/pointsOfInterest, which are
+      // silently ignored if unsupported) - out-of-range values throw, so the
+      // target is clamped into whatever this device actually supports first.
+      // Same experimental Image Capture surface, so this is Chrome-on-Android
+      // only in practice; fails silently everywhere else.
+      try {
+        const capabilities = track.getCapabilities() as MediaTrackCapabilities & { zoom?: { min: number; max: number } }
+        if (capabilities.zoom) {
+          const target = Math.min(Math.max(1.5, capabilities.zoom.min), capabilities.zoom.max)
+          await track.applyConstraints({ advanced: [{ zoom: target } as MediaTrackConstraintSet] })
+        }
+      } catch {
+        // Not supported on this device/browser - default (1x) zoom is fine.
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
