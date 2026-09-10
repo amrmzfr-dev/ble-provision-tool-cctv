@@ -1,5 +1,5 @@
 import { AlertTriangle, Bluetooth } from 'lucide-react'
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { BottomNav, type NavTab } from '@/components/BottomNav'
 import { DeviceScanner } from '@/components/DeviceScanner'
 import { LoginScreen } from '@/components/LoginScreen'
@@ -9,8 +9,9 @@ import { MyCamerasScreen } from '@/components/screens/MyCamerasScreen'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
 import { clearAuthToken, getAuthToken, subscribeAuthToken } from '@/lib/api/config'
+import { loadViewState, saveViewState, type StoredView } from '@/lib/appViewState'
 
-type View = { name: 'pairing' } | { name: 'my-cameras' } | { name: 'camera-detail'; serial: string }
+type View = StoredView
 
 function viewToTab(view: View): NavTab {
   // The detail screen is only ever reached from My Cameras, so it stays
@@ -21,8 +22,12 @@ function viewToTab(view: View): NavTab {
 export default function App() {
   const { theme, toggleTheme } = useTheme()
   const authToken = useSyncExternalStore(subscribeAuthToken, getAuthToken)
-  const [view, setView] = useState<View>({ name: 'pairing' })
+  const [view, setView] = useState<View>(() => loadViewState() ?? { name: 'pairing' })
   const [confirmingLogout, setConfirmingLogout] = useState(false)
+
+  useEffect(() => {
+    saveViewState(view)
+  }, [view])
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-background text-foreground">

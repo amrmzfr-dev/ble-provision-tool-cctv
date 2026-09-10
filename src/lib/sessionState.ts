@@ -1,33 +1,33 @@
-// Persists just enough to resume after the tab/app is closed mid-flow. Only
-// meaningful past the point where nothing left in the flow depends on a live
-// BLE GATT handle (which never survives a reload) - i.e. once the backend,
-// not Bluetooth, is the source of truth for what happens next.
+import type { Step } from '@/components/DeviceScanner'
+
+// Persists exactly enough UI position to survive a page refresh -
+// deliberately sessionStorage, not localStorage: it needs to disappear the
+// moment the tab/app is actually closed (fresh start at the QR scan screen
+// next time), while still surviving a plain reload within the same tab.
 const STORAGE_KEY = 'ble-provision-active-session'
 
-export type ResumableStep = 'backend' | 'stream'
-
-export interface SessionState {
+export interface PairingSessionState {
+  step: Step
   serial: string
-  step: ResumableStep
   backendNotified: boolean
 }
 
-export function saveSessionState(state: SessionState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+export function savePairingState(state: PairingSessionState): void {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
-export function loadSessionState(): SessionState | null {
-  const raw = localStorage.getItem(STORAGE_KEY)
+export function loadPairingState(): PairingSessionState | null {
+  const raw = sessionStorage.getItem(STORAGE_KEY)
   if (!raw) return null
   try {
-    const parsed = JSON.parse(raw) as Partial<SessionState>
-    if (!parsed.serial || (parsed.step !== 'backend' && parsed.step !== 'stream')) return null
-    return { serial: parsed.serial, step: parsed.step, backendNotified: Boolean(parsed.backendNotified) }
+    const parsed = JSON.parse(raw) as Partial<PairingSessionState>
+    if (!parsed.step) return null
+    return { step: parsed.step, serial: parsed.serial ?? '', backendNotified: Boolean(parsed.backendNotified) }
   } catch {
     return null
   }
 }
 
-export function clearSessionState(): void {
-  localStorage.removeItem(STORAGE_KEY)
+export function clearPairingState(): void {
+  sessionStorage.removeItem(STORAGE_KEY)
 }

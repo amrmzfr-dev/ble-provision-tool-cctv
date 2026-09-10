@@ -10,10 +10,10 @@ import { WifiCredentialsScreen } from '@/components/screens/WifiCredentialsScree
 import { useBleScan } from '@/hooks/useBleScan'
 import { useSwipe } from '@/hooks/useSwipe'
 import { deviceMatchesSerial } from '@/lib/ble/serial'
-import { clearSessionState, loadSessionState, saveSessionState } from '@/lib/sessionState'
+import { clearPairingState, loadPairingState, savePairingState } from '@/lib/sessionState'
 import { cn } from '@/lib/utils'
 
-type Step = 'scan' | 'find' | 'wifi' | 'pairing' | 'backend' | 'stream'
+export type Step = 'scan' | 'find' | 'wifi' | 'pairing' | 'backend' | 'stream'
 const STEPS: Step[] = ['scan', 'find', 'wifi', 'pairing', 'backend']
 
 function StepDots({ activeIndex }: { activeIndex: number }) {
@@ -32,10 +32,13 @@ function StepDots({ activeIndex }: { activeIndex: number }) {
   )
 }
 
-// Resuming lands on 'backend' or 'stream', both of which run entirely off
-// the serial + backend API - no BLE device handle needed, which is good,
-// because a GATT handle never survives a reload anyway.
-const initialSession = loadSessionState()
+// Restores wherever the user was within a refresh, but not across actually
+// closing the tab/app (loadPairingState reads sessionStorage - see
+// lib/sessionState.ts). 'find'/'wifi'/'pairing' resuming without a live BLE
+// device is still safe: the guard effect below bounces 'pairing' back to
+// 'find' when there's no device, and 'find'/'wifi' just show their normal
+// not-yet-scanned state otherwise.
+const initialSession = loadPairingState()
 
 export function DeviceScanner() {
   const [step, setStep] = useState<Step>(initialSession?.step ?? 'scan')
@@ -76,13 +79,12 @@ export function DeviceScanner() {
     if (device && step === 'find') setStep('wifi')
   }, [device, step])
 
-  // Once we're past Bluetooth entirely, remember where we are so closing the
-  // tab/app and coming back doesn't force starting over from the QR scan -
-  // reopening resumes straight into the backend status / stream screen.
+  // Remember where we are on every step change, so a refresh resumes right
+  // here instead of bouncing back to the QR scan. Cleared on an actual
+  // "done"/reset (goHome) - see lib/sessionState.ts for why a real tab/app
+  // close still starts fresh regardless.
   useEffect(() => {
-    if (step === 'backend' || step === 'stream') {
-      saveSessionState({ serial, step, backendNotified })
-    }
+    savePairingState({ serial, step, backendNotified })
   }, [step, serial, backendNotified])
 
   // A reload has no live GATT handle. If something routes back into
@@ -96,7 +98,7 @@ export function DeviceScanner() {
   const serialMatch = device ? deviceMatchesSerial(device.name, serial) : false
 
   const goHome = () => {
-    clearSessionState()
+    clearPairingState()
     reset()
     setSerial('')
     setWifiSsid('')
