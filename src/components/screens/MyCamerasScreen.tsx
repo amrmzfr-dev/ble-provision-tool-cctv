@@ -2,7 +2,7 @@ import { AlertTriangle, ChevronRight, Loader2, RefreshCw, Trash2 } from 'lucide-
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ApiError } from '@/lib/api/config'
+import { ApiError, subscribeAuthToken } from '@/lib/api/config'
 import { type CameraDto, listMyCameras, refreshAllMyCameras, removeMyCamera } from '@/lib/api/myCamerasClient'
 import { logEvent } from '@/lib/debugLog'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,18 @@ const ROW_HEIGHT = 'h-16'
 // refreshing quietly in the background - only a session's genuine first load
 // has nothing to show yet and actually needs it.
 let cameraListCache: CameraDto[] | null = null
+
+// The cache above is scoped to whichever account fetched it, with no
+// identity of its own attached. A login/logout doesn't reload the page (this
+// is a single-page app), so without this, switching accounts on the same
+// phone/browser briefly shows the PREVIOUS account's cached list for a
+// frame before the fresh (correctly empty/different) one replaces it. Any
+// auth change - login or logout, to any account - invalidates it; this runs
+// once at module load, for the page's whole lifetime, not tied to whether
+// this screen happens to be mounted at the time.
+subscribeAuthToken(() => {
+  cameraListCache = null
+})
 
 interface MyCamerasScreenProps {
   onOpenCamera: (serial: string) => void
