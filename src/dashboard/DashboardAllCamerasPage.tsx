@@ -1,7 +1,7 @@
 import { RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { listDashboardChargers, type DashboardCharger } from '@/lib/api/dashboardChargersClient'
+import { listDashboardAllCameras, type DashboardAllCamera } from '@/lib/api/dashboardAllCamerasClient'
 import { DashboardApiError } from '@/lib/api/dashboardConfig'
 import { cn } from '@/lib/utils'
 
@@ -11,25 +11,25 @@ function formatDate(iso: string | null): string {
 }
 
 /**
- * Every charger the real camera backend has ever registered, system-wide -
- * not scoped to this tool at all, unlike the Cameras ledger (which only
+ * Every camera the real camera backend has ever registered, system-wide -
+ * not scoped to this tool at all, unlike the Camera Ledger (which only
  * knows about serials paired through this app). Comes straight from
  * cctv.czeros.tech's own admin/cameras endpoint via the server-side
- * X-Admin-Key (DashboardChargersController) - never exposed to the browser.
+ * X-Admin-Key (DashboardAllCamerasController) - never exposed to the browser.
  */
-export function DashboardChargersPage() {
-  const [chargers, setChargers] = useState<DashboardCharger[] | null>(null)
+export function DashboardAllCamerasPage() {
+  const [cameras, setCameras] = useState<DashboardAllCamera[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const load = async () => {
     setLoading(true)
     try {
-      const data = await listDashboardChargers()
-      setChargers(data)
+      const data = await listDashboardAllCameras()
+      setCameras(data)
       setError(null)
     } catch (err) {
-      setError(err instanceof DashboardApiError ? err.message : 'Could not load the charger list.')
+      setError(err instanceof DashboardApiError ? err.message : 'Could not load the camera list.')
     } finally {
       setLoading(false)
     }
@@ -40,13 +40,13 @@ export function DashboardChargersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const onlineCount = chargers?.filter((c) => c.connected).length ?? 0
+  const onlineCount = cameras?.filter((c) => c.connected).length ?? 0
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          {chargers ? `${onlineCount} online / ${chargers.length} total` : 'Every charger the real backend knows about'}
+          {cameras ? `${onlineCount} online / ${cameras.length} total` : 'Every camera the real backend knows about'}
         </p>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={loading ? 'animate-spin' : ''} />
@@ -56,12 +56,12 @@ export function DashboardChargersPage() {
 
       {error && <p className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
-      {chargers === null && !error ? (
+      {cameras === null && !error ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : chargers && chargers.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No chargers registered yet.</p>
+      ) : cameras && cameras.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No cameras registered yet.</p>
       ) : (
-        chargers && (
+        cameras && (
           <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground uppercase">
@@ -75,7 +75,7 @@ export function DashboardChargersPage() {
                 </tr>
               </thead>
               <tbody>
-                {chargers.map((c) => (
+                {cameras.map((c) => (
                   <tr key={c.serial} className="border-t border-border">
                     <td className="p-3 font-mono">{c.serial}</td>
                     <td className="p-3">

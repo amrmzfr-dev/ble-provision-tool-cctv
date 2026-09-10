@@ -1,6 +1,6 @@
 import { dashboardFetch } from './dashboardConfig'
 
-export interface DashboardCharger {
+export interface DashboardAllCamera {
   serial: string
   ip: string | null
   status: string | null
@@ -9,6 +9,6 @@ export interface DashboardCharger {
   picName: string | null
 }
 
-export function listDashboardChargers(): Promise<DashboardCharger[]> {
-  return dashboardFetch('/dashboard/chargers')
+export function listDashboardAllCameras(): Promise<DashboardAllCamera[]> {
+  return dashboardFetch('/dashboard/all-cameras')
 }

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BleProvisionApi.Controllers;
 
-public record DashboardChargerDto(
+public record DashboardAllCameraDto(
     string Serial,
     string? Ip,
     string? Status,
@@ -17,22 +17,22 @@ public record DashboardChargerDto(
 );
 
 /// <summary>
-/// Every device the real camera backend has ever seen (cctv.czeros.tech's
+/// Every camera the real camera backend has ever seen (cctv.czeros.tech's
 /// own devices table + in-memory connection state), not just the ones
 /// paired through this app - reuses the same X-Admin-Key-backed
 /// admin/cameras endpoint the tester app's "Refresh all" already calls via
 /// CctvBackendProxy, so this needed no new access, just a new admin-only
 /// view of it. PicName is a best-effort overlay from our own Cameras table
-/// where we happen to know who configured that serial - most devices out
+/// where we happen to know who configured that serial - most cameras out
 /// there were never touched by this tool at all and simply won't have one.
 /// </summary>
 [ApiController]
-[Route("api/dashboard/chargers")]
+[Route("api/dashboard/all-cameras")]
 [Authorize(Policy = "AdminOnly")]
-public class DashboardChargersController(CctvBackendProxy proxy, AppDbContext db) : ControllerBase
+public class DashboardAllCamerasController(CctvBackendProxy proxy, AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<DashboardChargerDto>>> List()
+    public async Task<ActionResult<List<DashboardAllCameraDto>>> List()
     {
         JsonElement bulk;
         try
@@ -56,7 +56,7 @@ public class DashboardChargersController(CctvBackendProxy proxy, AppDbContext db
 
         // The real backend wraps this in {"total": N, "cameras": [...]}, not a
         // bare array.
-        var result = new List<DashboardChargerDto>();
+        var result = new List<DashboardAllCameraDto>();
         if (bulk.TryGetProperty("cameras", out var camerasArray) && camerasArray.ValueKind == JsonValueKind.Array)
         {
             foreach (var entry in camerasArray.EnumerateArray())
@@ -71,7 +71,7 @@ public class DashboardChargersController(CctvBackendProxy proxy, AppDbContext db
                     ? name
                     : null;
 
-                result.Add(new DashboardChargerDto(
+                result.Add(new DashboardAllCameraDto(
                     serial,
                     entry.TryGetProperty("ip", out var ip) ? ip.GetString() : null,
                     entry.TryGetProperty("status", out var status) ? status.GetString() : null,

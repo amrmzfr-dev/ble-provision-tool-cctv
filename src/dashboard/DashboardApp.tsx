@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { clearDashboardToken, getDashboardToken, subscribeDashboardToken } from '@/lib/api/dashboardConfig'
-import { DashboardChargersPage } from './DashboardChargersPage'
+import { DashboardAllCamerasPage } from './DashboardAllCamerasPage'
 import { DashboardLedger } from './DashboardLedger'
 import { DashboardLoginScreen } from './DashboardLoginScreen'
 import { DashboardShell, type DashboardPage } from './DashboardShell'
@@ -35,7 +35,7 @@ export function DashboardApp() {
   return (
     <div className="bg-background text-foreground">
       <DashboardShell page={page} onSelectPage={setPage} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout}>
-        {page === 'cameras' ? <DashboardLedger /> : page === 'chargers' ? <DashboardChargersPage /> : <DashboardUsersPage />}
+        {page === 'cameras' ? <DashboardLedger /> : page === 'all-cameras' ? <DashboardAllCamerasPage /> : <DashboardUsersPage />}
       </DashboardShell>
     </div>
   )

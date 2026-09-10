@@ -3,11 +3,11 @@ import { useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-export type DashboardPage = 'cameras' | 'chargers' | 'users'
+export type DashboardPage = 'cameras' | 'all-cameras' | 'users'
 
 const NAV: { id: DashboardPage; label: string; icon: typeof Camera }[] = [
   { id: 'cameras', label: 'Camera Ledger', icon: Camera },
-  { id: 'chargers', label: 'All Chargers', icon: Video },
+  { id: 'all-cameras', label: 'All Cameras', icon: Video },
   { id: 'users', label: 'Users', icon: Users },
 ]
 
