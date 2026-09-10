@@ -68,6 +68,18 @@ export function BackendHandoffScreen({
     }
   }, [phase, serial])
 
+  // Tracked in "My Cameras" from the moment WiFi is confirmed set, not only
+  // once it actually connects - that list has its own independent background
+  // refresh (MyCamerasScreen's auto-poll), so once this row exists there,
+  // this camera's progress keeps getting tracked even if this screen never
+  // sees the connection succeed (e.g. the tester left to pair another one).
+  useEffect(() => {
+    if (previewOnly || phase !== 'waiting') return
+    upsertMyCamera(serial).catch((err: unknown) => {
+      logEvent('error', `Could not save to My Cameras: ${err instanceof ApiError ? err.message : String(err)}`)
+    })
+  }, [phase, serial, previewOnly])
+
   useEffect(() => {
     if (previewOnly || phase !== 'waiting') return
     let cancelled = false
@@ -83,11 +95,10 @@ export function BackendHandoffScreen({
         if (result.status === 'connected') {
           logEvent('success', 'Camera connected')
           setPhase('connected')
-          // Fire-and-forget - this is what builds the "My Cameras" list, but
-          // it never blocks or fails the pairing flow itself if it errors.
-          upsertMyCamera(serial).catch((err: unknown) => {
-            logEvent('error', `Could not save to My Cameras: ${err instanceof ApiError ? err.message : String(err)}`)
-          })
+          // Already added to My Cameras the moment this screen entered
+          // 'waiting' (above) - MyCamerasScreen's own background refresh
+          // picks up this status change on its own, no need to re-upsert
+          // here (which would also reset AddedAt to right now).
           return
         }
         if (['connection_timeout', 'login_failed', 'password_error', 'serial_mismatch'].includes(result.status)) {
@@ -173,12 +184,18 @@ export function BackendHandoffScreen({
             )}
           </div>
           {phase === 'waiting' && (
-            <p className="text-justify text-xs text-muted-foreground">
-              Once paired and connected, the camera's LED turns solid green.
-            </p>
+            <>
+              <p className="text-justify text-xs text-muted-foreground">
+                Once paired and connected, the camera's LED turns solid green.
+              </p>
+              <p className="text-justify text-xs text-muted-foreground">
+                Already saved to My Cameras - safe to pair another one now without waiting for
+                this one to finish; check back on its status there later.
+              </p>
+            </>
           )}
           <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground">
-            Cancel and go back home
+            {phase === 'waiting' ? 'Pair another camera' : 'Cancel and go back home'}
           </Button>
         </div>
       )}
