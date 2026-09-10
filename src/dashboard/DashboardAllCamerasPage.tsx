@@ -102,7 +102,7 @@ export function DashboardAllCamerasPage() {
     <div className="flex flex-col gap-4 px-5 py-6">
       <h1 className="text-lg leading-tight font-black tracking-tight uppercase">All Cameras</h1>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3">
         {cameras && cameras.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             <select
