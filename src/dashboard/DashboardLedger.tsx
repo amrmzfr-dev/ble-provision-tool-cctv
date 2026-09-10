@@ -105,7 +105,7 @@ export function DashboardLedger() {
   const fillerRowCount = Math.max(0, DASHBOARD_PAGE_SIZE - pageCameras.length)
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
+    <div className="flex max-w-4xl flex-col gap-4 px-5 py-6">
       <h1 className="text-lg leading-tight font-black tracking-tight uppercase">Camera Ledger</h1>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
