@@ -99,7 +99,7 @@ export function DashboardAllCamerasPage() {
   const fillerRowCount = Math.max(0, DASHBOARD_PAGE_SIZE - pageCameras.length)
 
   return (
-    <div className="flex max-w-4xl flex-col gap-4 px-5 py-6">
+    <div className="flex flex-col gap-4 px-5 py-6">
       <h1 className="text-lg leading-tight font-black tracking-tight uppercase">All Cameras</h1>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -159,7 +159,7 @@ export function DashboardAllCamerasPage() {
       ) : visibleCameras.length === 0 ? (
         <p className="text-sm text-muted-foreground">No cameras match this filter.</p>
       ) : (
-        <>
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
           <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground uppercase">
@@ -206,7 +206,7 @@ export function DashboardAllCamerasPage() {
             </table>
           </div>
           <DashboardPagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </>
+        </div>
       )}
     </div>
   )

@@ -72,7 +72,7 @@ export function DashboardUsersPage() {
   }
 
   return (
-    <div className="flex max-w-4xl flex-col gap-4 px-5 py-6">
+    <div className="flex flex-col gap-4 px-5 py-6">
       <h1 className="text-lg leading-tight font-black tracking-tight uppercase">Users</h1>
 
       <div className="flex items-center justify-between gap-3">
@@ -89,7 +89,7 @@ export function DashboardUsersPage() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
         users && (
-          <div className="overflow-x-auto rounded-2xl border border-border">
+          <div className="mx-auto w-full max-w-4xl overflow-x-auto rounded-2xl border border-border">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground uppercase">
                 <tr>
