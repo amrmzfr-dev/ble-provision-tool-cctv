@@ -6,9 +6,8 @@ export interface DashboardCamera {
   lastStatus: string | null
   lastStatusAt: string | null
   addedAt: string
-  configuredByUsername: string | null
   configuredByName: string | null
-  lastCheckedByUsername: string | null
+  lastCheckedByName: string | null
 }
 
 export function listDashboardCameras(): Promise<DashboardCamera[]> {
