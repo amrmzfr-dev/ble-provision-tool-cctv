@@ -20,4 +20,7 @@ public class Camera
 
     public DateTimeOffset AddedAt { get; set; } = DateTimeOffset.UtcNow;
     public int? AddedByUserId { get; set; }
+
+    /// <summary>Who last ran a live status check on this specific camera (CameraDetailScreen, not the background bulk refresh) - the "who tested this" half of the dashboard ledger, alongside AddedByUserId for "who configured it".</summary>
+    public int? LastCheckedByUserId { get; set; }
 }

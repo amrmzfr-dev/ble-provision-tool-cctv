@@ -48,12 +48,25 @@ public class MyCamerasController(AppDbContext db, CctvBackendProxy proxy, ILogge
         return Ok(new CameraDto(camera.Serial, camera.Label, camera.LastStatus, camera.LastStatusAt, camera.AddedAt));
     }
 
-    /// <summary>Cache the live status against this list entry - called by the frontend right after it refreshes a camera's status via the proxied /api/device/&lt;serial&gt;/status call, so the list shows something without a live round trip every render.</summary>
+    /// <summary>
+    /// Cache the live status against this list entry - called by the frontend
+    /// right after it refreshes a camera's status via the proxied
+    /// /api/device/&lt;serial&gt;/status call, so the list shows something
+    /// without a live round trip every render. Also records who ran this
+    /// specific check - CameraDetailScreen calls this, the periodic
+    /// background poll on the list screen (RefreshAll below) doesn't, so this
+    /// reflects someone deliberately opening and testing this camera, not a
+    /// passive auto-refresh - the "who tested it" half of the dashboard
+    /// ledger (DashboardController).
+    /// </summary>
     [HttpPut("{serial}/status")]
     public async Task<IActionResult> UpdateStatus(string serial, [FromBody] string status)
     {
         var camera = await db.Cameras.SingleOrDefaultAsync(c => c.Serial == serial);
         if (camera is null) return NotFound(new { error = "not_in_list" });
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (int.TryParse(userIdClaim, out var userId)) camera.LastCheckedByUserId = userId;
 
         camera.LastStatus = status;
         camera.LastStatusAt = DateTimeOffset.UtcNow;

@@ -50,6 +50,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+
+    // Gates /api/dashboard/* (DashboardController) - only tokens carrying the
+    // "admin" role claim (JwtService.CreateToken, set from User.IsAdmin) pass.
+    // A non-admin's otherwise-valid login token gets a plain 403 here.
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
 });
 
 // Login is the one endpoint anyone on the internet can hit without already

@@ -6,6 +6,7 @@ import { apiFetch } from './config'
 export interface LoginResponse {
   token: string
   username: string
+  isAdmin: boolean
 }
 
 export function login(username: string, password: string): Promise<LoginResponse> {

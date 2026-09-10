@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BleProvisionApi.Controllers;
 
 public record LoginRequest(string Username, string Password);
-public record LoginResponse(string Token, string Username);
+public record LoginResponse(string Token, string Username, bool IsAdmin);
 public record CreateUserRequest(string Username, string Password);
 
 [ApiController]
@@ -27,7 +27,7 @@ public class AuthController(AppDbContext db, JwtService jwtService) : Controller
             return Unauthorized(new { error = "invalid_credentials" });
         }
 
-        return Ok(new LoginResponse(jwtService.CreateToken(user), user.Username));
+        return Ok(new LoginResponse(jwtService.CreateToken(user), user.Username, user.IsAdmin));
     }
 
     [HttpGet("me")]
@@ -36,7 +36,13 @@ public class AuthController(AppDbContext db, JwtService jwtService) : Controller
         return Ok(new { username = User.Identity?.Name });
     }
 
-    /// <summary>Any logged-in tester can create another tester's account - no separate admin role, this is a small internal tool.</summary>
+    /// <summary>
+    /// Any logged-in tester can create another tester's account - always a
+    /// plain (non-admin) one; there's no client-facing way to grant
+    /// IsAdmin/dashboard access through this endpoint. That's promoted with a
+    /// one-off DB update instead, the same way the very first account here is
+    /// seeded (Program.cs).
+    /// </summary>
     [HttpPost("users")]
     public async Task<IActionResult> CreateUser(CreateUserRequest request)
     {

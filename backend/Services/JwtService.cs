@@ -16,11 +16,14 @@ public class JwtService(IOptions<JwtOptions> options)
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.Name, user.Username),
         };
+        // Only present for admin accounts - AdminOnly policy (Program.cs) gates
+        // /api/dashboard/* on this, not on anything client-supplied.
+        if (user.IsAdmin) claims.Add(new Claim(ClaimTypes.Role, "admin"));
 
         var token = new JwtSecurityToken(
             issuer: _options.Issuer,
