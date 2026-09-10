@@ -46,7 +46,12 @@ export function DeviceScanner() {
   const [backendNotified, setBackendNotified] = useState(initialSession?.backendNotified ?? false)
   const { device, error, scanning, scan, reset } = useBleScan()
 
-  const realIndex = STEPS.indexOf(step)
+  // 'stream' isn't a dot of its own - it's a sub-view reached from 'backend'
+  // (via "View Stream"), so it shares that dot's index. Without this,
+  // resuming a session saved mid-stream looks up STEPS.indexOf('stream'),
+  // gets -1, and both previewIndex and STEPS[previewIndex] end up blank
+  // until a swipe nudges the index back into range.
+  const realIndex = STEPS.indexOf(step === 'stream' ? 'backend' : step)
   // Which step's content is actually being shown - independent of `step`
   // (real progress) so a swipe can browse ahead to preview a step that
   // hasn't been reached yet, or back to review one already passed, without
@@ -62,7 +67,7 @@ export function DeviceScanner() {
   // (a serial gets confirmed, a device is found, ...), snap the view back
   // to it rather than leaving the user stranded on a stale preview.
   useEffect(() => {
-    setPreviewIndex(STEPS.indexOf(step))
+    setPreviewIndex(STEPS.indexOf(step === 'stream' ? 'backend' : step))
   }, [step])
 
   // Found -> straight to WiFi entry, no separate confirmation screen. The
@@ -117,8 +122,12 @@ export function DeviceScanner() {
     () => setPreviewIndex((i) => Math.max(i - 1, 0)),
   )
 
-  const previewedStep = STEPS[previewIndex]
   const isViewingRealStep = previewIndex === realIndex
+  // Same reason as realIndex above: 'stream' has no dot/index of its own, so
+  // STEPS[previewIndex] can never actually equal 'stream'. Fall back to the
+  // real `step` whenever we're viewing real progress (not a preview) so the
+  // stream screen genuinely renders on resume instead of showing 'backend'.
+  const previewedStep: Step = isViewingRealStep ? step : STEPS[previewIndex]
   // Only meaningful ahead of real progress - reviewing an already-completed
   // step needs no such reminder, there's nothing left to finish there.
   const previewIncomplete = !isViewingRealStep && previewIndex > realIndex
