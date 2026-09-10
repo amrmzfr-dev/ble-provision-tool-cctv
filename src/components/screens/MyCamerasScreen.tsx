@@ -9,6 +9,16 @@ import { cn } from '@/lib/utils'
 
 const LONG_PRESS_MS = 2000
 const POLL_INTERVAL_MS = 15000
+// Fixed row height shared by the real cards and their skeleton placeholders -
+// the two need to be pixel-identical or swapping between them shifts layout.
+const ROW_HEIGHT = 'h-16'
+
+// Module-level, not state: survives this component unmounting (switching
+// tabs away and back re-mounts it from scratch). Lets a revisit that already
+// has last-known data skip the skeleton entirely and paint immediately,
+// refreshing quietly in the background - only a session's genuine first load
+// has nothing to show yet and actually needs it.
+let cameraListCache: CameraDto[] | null = null
 
 interface MyCamerasScreenProps {
   onOpenCamera: (serial: string) => void
@@ -32,7 +42,7 @@ function statusTone(status: string | null): string {
  * permanent button on every row.
  */
 export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
-  const [cameras, setCameras] = useState<CameraDto[] | null>(null)
+  const [cameras, setCameras] = useState<CameraDto[] | null>(cameraListCache)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [confirmDeleteSerial, setConfirmDeleteSerial] = useState<string | null>(null)
@@ -47,6 +57,7 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
       logEvent('tx', 'POST /mycameras/refresh (bulk status check)')
       const updated = await refreshAllMyCameras()
       logEvent('success', `Refreshed ${updated.length} camera(s)`)
+      cameraListCache = updated
       setCameras(updated)
       setError(null)
     } catch (err) {
@@ -59,15 +70,23 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
   }
 
   useEffect(() => {
-    // Paint instantly from the cached (possibly stale) list, then check live
-    // status right away - the cached lastStatus only updates when someone
-    // visits a camera's detail page or taps "Refresh all", so without this a
-    // camera turned off since its last check would still show "connected"
-    // until one of those happened.
+    if (cameraListCache) {
+      // Already have something on screen from a previous visit this session -
+      // just check live status quietly, no skeleton/loading state at all.
+      void refreshAll({ silent: true })
+      return
+    }
+    // Genuine first load: nothing to show yet, so the skeleton is warranted.
+    // Paints from the cached-on-the-backend (possibly stale) list first, then
+    // checks live status right away - the backend's own lastStatus column
+    // only updates when someone visits a camera's detail page or taps
+    // "Refresh all", so without this a camera turned off since its last
+    // check would still show "connected" until one of those happened.
     listMyCameras()
-      .then((cached) => {
-        setCameras(cached)
-        if (cached.length > 0) void refreshAll({ silent: true })
+      .then((initial) => {
+        cameraListCache = initial
+        setCameras(initial)
+        if (initial.length > 0) void refreshAll({ silent: true })
       })
       .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Could not load your camera list.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +128,9 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
     setDeleting(true)
     try {
       await removeMyCamera(confirmDeleteSerial)
-      setCameras((list) => (list ?? []).filter((c) => c.serial !== confirmDeleteSerial))
+      const updated = (cameras ?? []).filter((c) => c.serial !== confirmDeleteSerial)
+      cameraListCache = updated
+      setCameras(updated)
       setConfirmDeleteSerial(null)
     } catch (err) {
       logEvent('error', `Remove failed: ${err instanceof ApiError ? err.message : String(err)}`)
@@ -135,12 +156,10 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
       {cameras === null && !error ? (
         <div className="flex flex-1 flex-col gap-2">
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
-              <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-24" />
-              </div>
+            <div key={i} className={cn(ROW_HEIGHT, 'flex items-center gap-3 rounded-2xl border border-border bg-card px-4')}>
+              <Skeleton className="h-4 min-w-0 flex-1" />
               <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+              <Skeleton className="size-4 shrink-0 rounded-sm" />
             </div>
           ))}
         </div>
@@ -162,12 +181,12 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
               onPointerLeave={cancelPress}
               onPointerCancel={cancelPress}
               onClick={() => handleRowClick(camera.serial)}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors select-none hover:bg-muted"
+              className={cn(
+                ROW_HEIGHT,
+                'flex items-center gap-3 rounded-2xl border border-border bg-card px-4 text-left transition-colors select-none hover:bg-muted',
+              )}
             >
-              <div className="min-w-0 flex-1">
-                <code className="block truncate font-mono text-sm font-semibold">{camera.serial}</code>
-                {camera.label && <p className="truncate text-xs text-muted-foreground">{camera.label}</p>}
-              </div>
+              <code className="min-w-0 flex-1 truncate font-mono text-sm font-semibold">{camera.serial}</code>
               <span
                 className={cn(
                   'shrink-0 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase',

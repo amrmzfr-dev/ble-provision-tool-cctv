@@ -86,7 +86,7 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
         // still better than nothing if neither takes.
       }
 
-      // Start zoomed in to 150% (1.5x) by default - small QR codes are hard
+      // Start zoomed in to 250% (2.5x) by default - small QR codes are hard
       // to fill the frame with at arm's length otherwise. `zoom` is a real,
       // clamped capability (unlike focusMode/pointsOfInterest, which are
       // silently ignored if unsupported) - out-of-range values throw, so the
@@ -96,7 +96,7 @@ export function useQrScanner(onResult: (text: string) => void): UseQrScannerResu
       try {
         const capabilities = track.getCapabilities() as MediaTrackCapabilities & { zoom?: { min: number; max: number } }
         if (capabilities.zoom) {
-          const target = Math.min(Math.max(1.5, capabilities.zoom.min), capabilities.zoom.max)
+          const target = Math.min(Math.max(2.5, capabilities.zoom.min), capabilities.zoom.max)
           await track.applyConstraints({ advanced: [{ zoom: target } as MediaTrackConstraintSet] })
         }
       } catch {
