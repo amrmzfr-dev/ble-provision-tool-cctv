@@ -36,10 +36,21 @@ export class DashboardApiError extends Error {
   }
 }
 
-export async function dashboardFetch<T>(path: string): Promise<T> {
+interface DashboardFetchOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  body?: unknown
+}
+
+export async function dashboardFetch<T>(path: string, options: DashboardFetchOptions = {}): Promise<T> {
+  const { method = 'GET', body } = options
   const token = getDashboardToken()
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    method,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   // A non-admin token (or an expired/invalid one) reads the same here - 401

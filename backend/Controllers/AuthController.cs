@@ -38,10 +38,10 @@ public class AuthController(AppDbContext db, JwtService jwtService) : Controller
 
     /// <summary>
     /// Any logged-in tester can create another tester's account - always a
-    /// plain (non-admin) one; there's no client-facing way to grant
-    /// IsAdmin/dashboard access through this endpoint. That's promoted with a
-    /// one-off DB update instead, the same way the very first account here is
-    /// seeded (Program.cs).
+    /// plain (non-admin) one; this endpoint has no IsAdmin field at all.
+    /// Creating/promoting an admin account is DashboardUsersController's job
+    /// (/dashboard/users), gated on already being an admin - a compromised
+    /// tester token can never grant itself dashboard access through here.
     /// </summary>
     [HttpPost("users")]
     public async Task<IActionResult> CreateUser(CreateUserRequest request)

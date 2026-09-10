@@ -1,4 +1,4 @@
-import { LogOut, Moon, RefreshCw, ShieldCheck, Sun } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { listDashboardCameras, type DashboardCamera } from '@/lib/api/dashboardClient'
@@ -19,19 +19,13 @@ function statusTone(status: string | null): string {
   return 'bg-secondary text-secondary-foreground border-border'
 }
 
-interface DashboardLedgerProps {
-  theme: 'light' | 'dark'
-  onToggleTheme: () => void
-  onLogout: () => void
-}
-
 /**
  * The actual "who's responsible for this camera" ledger: one row per camera,
  * who paired/configured it (Camera.AddedByUserId) and who last ran a live
  * status check on it (Camera.LastCheckedByUserId) - see
  * backend/Controllers/DashboardController.cs for where the two are joined.
  */
-export function DashboardLedger({ theme, onToggleTheme, onLogout }: DashboardLedgerProps) {
+export function DashboardLedger() {
   const [cameras, setCameras] = useState<DashboardCamera[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -56,29 +50,15 @@ export function DashboardLedger({ theme, onToggleTheme, onLogout }: DashboardLed
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="glow-primary flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <ShieldCheck className="size-5" />
-          </div>
-          <div>
-            <h1 className="text-xl leading-tight font-black tracking-tight uppercase">Camera ledger</h1>
-            <p className="text-xs text-muted-foreground">Who configured and last tested each camera</p>
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg leading-tight font-black tracking-tight uppercase">Camera ledger</h2>
+          <p className="text-xs text-muted-foreground">Who configured and last tested each camera</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={onToggleTheme} aria-label="Toggle theme">
-            {theme === 'dark' ? <Sun /> : <Moon />}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm" onClick={onLogout}>
-            <LogOut />
-            Sign out
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+          <RefreshCw className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </Button>
       </div>
 
       {error && <p className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
