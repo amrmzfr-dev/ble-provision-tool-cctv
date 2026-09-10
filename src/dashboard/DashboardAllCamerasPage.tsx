@@ -85,6 +85,9 @@ export function DashboardAllCamerasPage() {
       list = list.filter((c) => (c.picName !== null) === wantChecked)
     }
     return [...list].sort((a, b) => {
+      // Online always floats to the top regardless of the time sort below -
+      // that one only orders within each connected/not-connected group.
+      if (a.connected !== b.connected) return a.connected ? -1 : 1
       const aTime = a.registrationTime ? new Date(a.registrationTime).getTime() : 0
       const bTime = b.registrationTime ? new Date(b.registrationTime).getTime() : 0
       return sortOrder === 'newest' ? bTime - aTime : aTime - bTime

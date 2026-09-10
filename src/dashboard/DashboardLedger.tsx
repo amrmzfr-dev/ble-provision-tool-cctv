@@ -91,6 +91,11 @@ export function DashboardLedger() {
       list = list.filter((c) => (c.lastCheckedByName !== null) === wantChecked)
     }
     return [...list].sort((a, b) => {
+      // Connected always floats to the top regardless of the time sort below -
+      // that one only orders within each connected/not-connected group.
+      const aConnected = a.lastStatus === 'connected'
+      const bConnected = b.lastStatus === 'connected'
+      if (aConnected !== bConnected) return aConnected ? -1 : 1
       const aTime = new Date(a.addedAt).getTime()
       const bTime = new Date(b.addedAt).getTime()
       return sortOrder === 'newest' ? bTime - aTime : aTime - bTime
