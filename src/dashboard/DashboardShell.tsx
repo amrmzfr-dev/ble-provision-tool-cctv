@@ -29,7 +29,7 @@ interface DashboardShellProps {
 export function DashboardShell({ page, onSelectPage, theme, onToggleTheme, onLogout, children }: DashboardShellProps) {
   return (
     <div className="flex min-h-svh">
-      <aside className="flex w-16 shrink-0 flex-col border-r border-border bg-card md:w-60">
+      <aside className="sticky top-0 flex h-svh w-16 shrink-0 flex-col border-r border-border bg-card md:w-60">
         <div className="flex items-center gap-2.5 p-3 md:p-5">
           <div className="glow-primary flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <ShieldCheck className="size-5" />
