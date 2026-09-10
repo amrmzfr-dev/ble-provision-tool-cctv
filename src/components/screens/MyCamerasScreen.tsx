@@ -7,6 +7,7 @@ import { logEvent } from '@/lib/debugLog'
 import { cn } from '@/lib/utils'
 
 const LONG_PRESS_MS = 2000
+const POLL_INTERVAL_MS = 15000
 
 interface MyCamerasScreenProps {
   onOpenCamera: (serial: string) => void
@@ -39,27 +40,46 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
   const longPressTimer = useRef<number | null>(null)
   const longPressFired = useRef(false)
 
-  useEffect(() => {
-    listMyCameras()
-      .then(setCameras)
-      .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Could not load your camera list.'))
-  }, [])
-
-  const refreshAll = async () => {
-    setRefreshing(true)
+  const refreshAll = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setRefreshing(true)
     try {
       logEvent('tx', 'POST /mycameras/refresh (bulk status check)')
       const updated = await refreshAllMyCameras()
       logEvent('success', `Refreshed ${updated.length} camera(s)`)
       setCameras(updated)
+      setError(null)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : String(err)
       logEvent('error', `Bulk refresh failed: ${message}`)
-      setError(message)
+      if (!opts?.silent) setError(message)
     } finally {
-      setRefreshing(false)
+      if (!opts?.silent) setRefreshing(false)
     }
   }
+
+  useEffect(() => {
+    // Paint instantly from the cached (possibly stale) list, then check live
+    // status right away - the cached lastStatus only updates when someone
+    // visits a camera's detail page or taps "Refresh all", so without this a
+    // camera turned off since its last check would still show "connected"
+    // until one of those happened.
+    listMyCameras()
+      .then((cached) => {
+        setCameras(cached)
+        if (cached.length > 0) void refreshAll({ silent: true })
+      })
+      .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Could not load your camera list.'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Keep statuses live without the user having to tap "Refresh all" or open
+  // a camera's detail page - silent so it never flashes the spinner/error UI
+  // meant for the manual button.
+  useEffect(() => {
+    const timer = window.setInterval(() => void refreshAll({ silent: true }), POLL_INTERVAL_MS)
+    return () => window.clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const startPress = (serial: string) => {
     longPressFired.current = false
@@ -100,7 +120,7 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
   return (
     <div className="flex min-h-[560px] flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">My cameras</h2>
+        <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">Camera list</h2>
         {cameras && cameras.length > 0 && (
           <Button variant="outline" size="sm" onClick={() => void refreshAll()} disabled={refreshing}>
             <RefreshCw className={refreshing ? 'animate-spin' : ''} />
