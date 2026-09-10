@@ -13,7 +13,7 @@ type SortOrder = 'newest' | 'oldest'
 const SELECT_CLASS =
   'h-9 rounded-xl border border-input bg-card px-2.5 font-mono text-xs text-foreground outline-none focus-visible:border-ring'
 const ROW_HEIGHT = 'h-12'
-const COLUMN_COUNT = 6
+const COLUMN_COUNT = 7
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -106,47 +106,53 @@ export function DashboardLedger() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">Who configured and last tested each camera</p>
-        <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-          <RefreshCw className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </Button>
-      </div>
+      <h1 className="text-lg leading-tight font-black tracking-tight uppercase">Camera Ledger</h1>
 
-      {cameras && cameras.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <select
-            className={SELECT_CLASS}
-            value={connectionFilter}
-            onChange={(e) => updateConnectionFilter(e.target.value as ConnectionFilter)}
-            aria-label="Filter by connection"
-          >
-            <option value="all">All connections</option>
-            <option value="online">Connected only</option>
-            <option value="offline">Not connected only</option>
-          </select>
-          <select
-            className={SELECT_CLASS}
-            value={picFilter}
-            onChange={(e) => updatePicFilter(e.target.value as PicFilter)}
-            aria-label="Filter by PIC"
-          >
-            <option value="all">All PIC status</option>
-            <option value="checked">Checked by PIC</option>
-            <option value="unchecked">No PIC check</option>
-          </select>
-          <select
-            className={SELECT_CLASS}
-            value={sortOrder}
-            onChange={(e) => updateSortOrder(e.target.value as SortOrder)}
-            aria-label="Sort by configured time"
-          >
-            <option value="newest">Newest configured first</option>
-            <option value="oldest">Oldest configured first</option>
-          </select>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {cameras && cameras.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <select
+              className={SELECT_CLASS}
+              value={connectionFilter}
+              onChange={(e) => updateConnectionFilter(e.target.value as ConnectionFilter)}
+              aria-label="Filter by connection"
+            >
+              <option value="all">All connections</option>
+              <option value="online">Connected only</option>
+              <option value="offline">Not connected only</option>
+            </select>
+            <select
+              className={SELECT_CLASS}
+              value={picFilter}
+              onChange={(e) => updatePicFilter(e.target.value as PicFilter)}
+              aria-label="Filter by PIC"
+            >
+              <option value="all">All PIC status</option>
+              <option value="checked">Checked by PIC</option>
+              <option value="unchecked">No PIC check</option>
+            </select>
+            <select
+              className={SELECT_CLASS}
+              value={sortOrder}
+              onChange={(e) => updateSortOrder(e.target.value as SortOrder)}
+              aria-label="Sort by configured time"
+            >
+              <option value="newest">Newest configured first</option>
+              <option value="oldest">Oldest configured first</option>
+            </select>
+          </div>
+        ) : (
+          <span />
+        )}
+
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted-foreground">Who configured and last tested each camera</p>
+          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+            <RefreshCw className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </Button>
         </div>
-      )}
+      </div>
 
       {error && <p className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
@@ -162,6 +168,7 @@ export function DashboardLedger() {
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground uppercase">
                 <tr>
+                  <th className="p-3 font-semibold">#</th>
                   <th className="p-3 font-semibold">Serial</th>
                   <th className="p-3 font-semibold">Status</th>
                   <th className="p-3 font-semibold">PIC name</th>
@@ -171,8 +178,9 @@ export function DashboardLedger() {
                 </tr>
               </thead>
               <tbody>
-                {pageCameras.map((c) => (
+                {pageCameras.map((c, i) => (
                   <tr key={c.serial} className={cn(ROW_HEIGHT, 'border-t border-border')}>
+                    <td className="p-3 text-muted-foreground">{(page - 1) * DASHBOARD_PAGE_SIZE + i + 1}</td>
                     <td className="p-3 font-mono whitespace-nowrap">{c.serial}</td>
                     <td className="p-3 whitespace-nowrap">
                       <span className={cn('rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase', statusTone(c.lastStatus))}>

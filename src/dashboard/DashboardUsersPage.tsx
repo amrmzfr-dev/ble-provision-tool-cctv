@@ -73,6 +73,8 @@ export function DashboardUsersPage() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
+      <h1 className="text-lg leading-tight font-black tracking-tight uppercase">Users</h1>
+
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">Testers and admins who can sign in</p>
         <Button size="sm" onClick={() => setEditing('new')}>
@@ -91,6 +93,7 @@ export function DashboardUsersPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground uppercase">
                 <tr>
+                  <th className="p-3 font-semibold">#</th>
                   <th className="p-3 font-semibold">Name</th>
                   <th className="p-3 font-semibold">Username</th>
                   <th className="p-3 font-semibold">Role</th>
@@ -99,8 +102,9 @@ export function DashboardUsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {users.map((u, i) => (
                   <tr key={u.id} className="border-t border-border">
+                    <td className="p-3 text-muted-foreground">{i + 1}</td>
                     <td className="p-3 font-medium uppercase">{u.displayName ?? '—'}</td>
                     <td className="p-3 font-mono">{u.username}</td>
                     <td className="p-3">
