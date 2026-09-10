@@ -1,9 +1,11 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using BleProvisionApi.Data;
 using BleProvisionApi.Data.Entities;
 using BleProvisionApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -50,6 +52,24 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+// Login is the one endpoint anyone on the internet can hit without already
+// being logged in, so it's the one worth throttling - 5 attempts per minute
+// per source IP, same shape as the real camera backend's admin_login limit.
+// Partitioned by IP so one attacker can't lock out everyone else.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -80,6 +100,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

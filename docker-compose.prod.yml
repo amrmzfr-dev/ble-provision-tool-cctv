@@ -8,7 +8,11 @@ services:
       # VPS (e.g. ev-frontend-prod on 3000, ev-backend-prod on 8080). Check
       # with `docker ps` / `ss -tlnp` before first deploy and change if needed -
       # update the matching host nginx `proxy_pass` line to match.
-      - "3010:80"
+      # Bound to loopback only - the host's nginx (cctv-provision.czeros.tech,
+      # TLS via Certbot) is the only intended entry point. Publishing this on
+      # 0.0.0.0 let anyone reach the app directly over plain http, bypassing
+      # HTTPS entirely (confirmed reachable at http://<vps-ip>:3010).
+      - "127.0.0.1:3010:80"
     depends_on:
       - ble-backend
     networks:

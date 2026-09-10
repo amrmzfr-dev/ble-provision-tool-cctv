@@ -3,6 +3,7 @@ using BleProvisionApi.Data.Entities;
 using BleProvisionApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace BleProvisionApi.Controllers;
@@ -17,6 +18,7 @@ public class AuthController(AppDbContext db, JwtService jwtService) : Controller
 {
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
         var user = await db.Users.SingleOrDefaultAsync(u => u.Username == request.Username);
