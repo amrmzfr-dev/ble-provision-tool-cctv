@@ -8,7 +8,7 @@ import { CameraDetailScreen } from '@/components/screens/CameraDetailScreen'
 import { MyCamerasScreen } from '@/components/screens/MyCamerasScreen'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
-import { clearAuthToken, getAuthToken, subscribeAuthToken } from '@/lib/api/config'
+import { clearAuthToken, getAuthToken, getAuthUsername, subscribeAuthToken } from '@/lib/api/config'
 import { loadViewState, saveViewState, type StoredView } from '@/lib/appViewState'
 
 type View = StoredView
@@ -22,6 +22,7 @@ function viewToTab(view: View): NavTab {
 export default function App() {
   const { theme, toggleTheme } = useTheme()
   const authToken = useSyncExternalStore(subscribeAuthToken, getAuthToken)
+  const authUsername = useSyncExternalStore(subscribeAuthToken, getAuthUsername)
   const [view, setView] = useState<View>(() => loadViewState() ?? { name: 'pairing' })
   const [confirmingLogout, setConfirmingLogout] = useState(false)
 
@@ -57,7 +58,8 @@ export default function App() {
           <CameraDetailScreen serial={view.serial} onBack={() => setView({ name: 'my-cameras' })} />
         )}
       </div>
-      <LogConsole />
+      {/* Raw BLE/API trace - only amir gets it; every other tester just sees the normal UI. */}
+      {authUsername === 'amir' && <LogConsole />}
 
       {authToken && (
         <BottomNav

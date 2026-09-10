@@ -5,6 +5,7 @@
 export const API_BASE = '/api'
 
 const AUTH_TOKEN_STORAGE = 'ble-provision-auth-token'
+const AUTH_USERNAME_STORAGE = 'ble-provision-auth-username'
 
 // Tiny pub/sub so App.tsx's login gate (via useSyncExternalStore) reacts
 // immediately to a login/logout/expiry - plain localStorage writes don't
@@ -25,13 +26,19 @@ export function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_STORAGE)
 }
 
-export function setAuthToken(token: string): void {
+export function getAuthUsername(): string | null {
+  return localStorage.getItem(AUTH_USERNAME_STORAGE)
+}
+
+export function setAuthToken(token: string, username: string): void {
   localStorage.setItem(AUTH_TOKEN_STORAGE, token)
+  localStorage.setItem(AUTH_USERNAME_STORAGE, username)
   notifyAuthChanged()
 }
 
 export function clearAuthToken(): void {
   localStorage.removeItem(AUTH_TOKEN_STORAGE)
+  localStorage.removeItem(AUTH_USERNAME_STORAGE)
   notifyAuthChanged()
 }
 

@@ -24,7 +24,7 @@ export function LoginScreen() {
     setError(null)
     try {
       const res = await login(username, password)
-      setAuthToken(res.token)
+      setAuthToken(res.token, res.username)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not reach the server.')
     } finally {
