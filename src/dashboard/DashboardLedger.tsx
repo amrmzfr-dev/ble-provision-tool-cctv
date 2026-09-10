@@ -51,10 +51,7 @@ export function DashboardLedger() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg leading-tight font-black tracking-tight uppercase">Camera ledger</h2>
-          <p className="text-xs text-muted-foreground">Who configured and last tested each camera</p>
-        </div>
+        <p className="text-xs text-muted-foreground">Who configured and last tested each camera</p>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={loading ? 'animate-spin' : ''} />
           Refresh

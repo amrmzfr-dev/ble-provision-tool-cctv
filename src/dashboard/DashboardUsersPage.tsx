@@ -74,10 +74,7 @@ export function DashboardUsersPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg leading-tight font-black tracking-tight uppercase">Users</h2>
-          <p className="text-xs text-muted-foreground">Testers and admins who can sign in</p>
-        </div>
+        <p className="text-xs text-muted-foreground">Testers and admins who can sign in</p>
         <Button size="sm" onClick={() => setEditing('new')}>
           <Plus />
           New user
