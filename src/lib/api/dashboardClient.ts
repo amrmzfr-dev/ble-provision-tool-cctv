@@ -13,3 +13,8 @@ export interface DashboardCamera {
 export function listDashboardCameras(): Promise<DashboardCamera[]> {
   return dashboardFetch('/dashboard/cameras')
 }
+
+/** Straight to the real backend - only works while the camera is actively connected. */
+export function resetDashboardCamera(serial: string): Promise<{ success: true }> {
+  return dashboardFetch(`/dashboard/cameras/${encodeURIComponent(serial)}/reset`, { method: 'POST' })
+}

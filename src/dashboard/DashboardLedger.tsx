@@ -5,6 +5,7 @@ import { listDashboardCameras, type DashboardCamera } from '@/lib/api/dashboardC
 import { DashboardApiError } from '@/lib/api/dashboardConfig'
 import { cn } from '@/lib/utils'
 import { DASHBOARD_PAGE_SIZE, DashboardPagination } from './DashboardPagination'
+import { DashboardResetButton } from './DashboardResetButton'
 
 type ConnectionFilter = 'all' | 'online' | 'offline'
 type PicFilter = 'all' | 'checked' | 'unchecked'
@@ -13,7 +14,7 @@ type SortOrder = 'newest' | 'oldest'
 const SELECT_CLASS =
   'h-9 rounded-xl border border-input bg-card px-2.5 font-mono text-xs text-foreground outline-none focus-visible:border-ring'
 const ROW_HEIGHT = 'h-12'
-const COLUMN_COUNT = 7
+const COLUMN_COUNT = 8
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -180,6 +181,7 @@ export function DashboardLedger() {
                   <th className="p-3 font-semibold">Configured at</th>
                   <th className="p-3 font-semibold">Last tested by</th>
                   <th className="p-3 font-semibold">Last tested at</th>
+                  <th className="p-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,6 +198,9 @@ export function DashboardLedger() {
                     <td className="p-3 text-muted-foreground whitespace-nowrap">{formatDate(c.addedAt)}</td>
                     <td className="p-3 uppercase whitespace-nowrap">{c.lastCheckedByName ?? '—'}</td>
                     <td className="p-3 text-muted-foreground whitespace-nowrap">{formatDate(c.lastStatusAt)}</td>
+                    <td className="p-3">
+                      <DashboardResetButton serial={c.serial} onReset={() => void load()} />
+                    </td>
                   </tr>
                 ))}
                 {Array.from({ length: fillerRowCount }, (_, i) => (

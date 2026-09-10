@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 
@@ -90,5 +91,34 @@ public class CctvBackendProxy(HttpClient httpClient, IOptions<CctvBackendOptions
         // (that annotation only takes effect for reference types on an
         // unconstrained generic parameter) - no null fallback needed here.
         return await JsonSerializer.DeserializeAsync<JsonElement>(stream);
+    }
+
+    /// <summary>
+    /// For server-side POST calls that need the real backend's response body
+    /// even on failure (e.g. a factory reset against a disconnected device
+    /// returns 400 with a real explanation) - unlike GetJsonAsync above,
+    /// this deliberately doesn't throw on a non-2xx status.
+    /// </summary>
+    public async Task<(bool Success, int StatusCode, JsonElement? Body)> PostJsonAsync(string path, object body)
+    {
+        var targetUrl = $"{_options.BaseUrl.TrimEnd('/')}/api/{path}";
+        using var request = new HttpRequestMessage(HttpMethod.Post, targetUrl)
+        {
+            Content = JsonContent.Create(body),
+        };
+        request.Headers.TryAddWithoutValidation("X-Admin-Key", _options.AdminKey);
+
+        using var response = await httpClient.SendAsync(request);
+        JsonElement? parsed = null;
+        try
+        {
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            parsed = await JsonSerializer.DeserializeAsync<JsonElement>(stream);
+        }
+        catch (JsonException)
+        {
+            // Empty or non-JSON body - callers fall back to a generic message.
+        }
+        return (response.IsSuccessStatusCode, (int)response.StatusCode, parsed);
     }
 }

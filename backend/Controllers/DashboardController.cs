@@ -1,4 +1,5 @@
 using BleProvisionApi.Data;
+using BleProvisionApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,8 +26,29 @@ public record DashboardCameraDto(
 [ApiController]
 [Route("api/dashboard")]
 [Authorize(Policy = "AdminOnly")]
-public class DashboardController(AppDbContext db) : ControllerBase
+public class DashboardController(AppDbContext db, CctvBackendProxy proxy) : ControllerBase
 {
+    /// <summary>
+    /// Factory reset, straight to the real backend - same admin/device/{serial}/reset
+    /// call the tester app's own "Reset for redeployment" button makes, just
+    /// reachable from the dashboard for a camera the tester app never even
+    /// listed (e.g. one nobody paired through this tool, only visible via
+    /// All Cameras). Only works while the device is actively connected - the
+    /// real backend refuses it otherwise, and that refusal (with its real
+    /// message) is passed straight back rather than turned into a generic error.
+    /// </summary>
+    [HttpPost("cameras/{serial}/reset")]
+    public async Task<IActionResult> ResetCamera(string serial)
+    {
+        var (success, statusCode, body) = await proxy.PostJsonAsync($"admin/device/{serial}/reset", new { factory_reset = true, confirm = true });
+        if (!success)
+        {
+            var message = body?.TryGetProperty("message", out var m) == true ? m.GetString() : "Reset failed.";
+            return StatusCode(statusCode, new { error = "reset_failed", message });
+        }
+        return Ok(new { success = true });
+    }
+
     [HttpGet("cameras")]
     public async Task<ActionResult<List<DashboardCameraDto>>> ListCameras()
     {
