@@ -112,7 +112,7 @@ export function DashboardLedger({ theme, onToggleTheme, onLogout }: DashboardLed
                       </span>
                     </td>
                     <td className="p-3">{c.configuredByUsername ?? '—'}</td>
-                    <td className="p-3 font-medium">{c.configuredByName ?? '—'}</td>
+                    <td className="p-3 font-medium uppercase">{c.configuredByName ?? '—'}</td>
                     <td className="p-3 text-muted-foreground">{formatDate(c.addedAt)}</td>
                     <td className="p-3">{c.lastCheckedByUsername ?? '—'}</td>
                     <td className="p-3 text-muted-foreground">{formatDate(c.lastStatusAt)}</td>
