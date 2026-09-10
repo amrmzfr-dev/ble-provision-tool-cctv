@@ -50,8 +50,7 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
           <Bluetooth className="size-8" />
         </div>
         <p className="text-justify text-sm text-muted-foreground">
-          Your browser will show its own picker, pre-filtered to just this camera's kind of
-          device. Pick it from that list, then pairing continues automatically.
+          Choose the device with the same serial as the one you scanned.
         </p>
 
         <Button onClick={() => onScan('manufacturer')} disabled={scanning} size="lg" className="w-full">

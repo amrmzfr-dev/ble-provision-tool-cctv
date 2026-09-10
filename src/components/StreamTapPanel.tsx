@@ -83,9 +83,6 @@ export function StreamTapPanel({
               <p>01:43:12.140  chunk 2  +6.9 KB  (total 14.2 KB)</p>
               <p>01:43:12.183  chunk 3  +7.1 KB  (total 21.3 KB)</p>
             </div>
-            <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
-              <p className="text-sm font-semibold text-white/85">Press Start to begin for real</p>
-            </div>
           </div>
         ) : phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
