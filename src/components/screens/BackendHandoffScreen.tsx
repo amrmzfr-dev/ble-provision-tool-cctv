@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Loader2, RotateCcw, Trash2, Video, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { HelpTip } from '@/components/HelpTip'
 import { Button } from '@/components/ui/button'
 import { adminResetDevice, getDeviceStatus, postWifiConfigured } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/config'
@@ -144,9 +145,17 @@ export function BackendHandoffScreen({
         <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
           Step 5 of 5
         </span>
-        <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
-          Connecting to the server
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl leading-tight font-black tracking-tight uppercase">
+            Connecting to the server
+          </h2>
+          <HelpTip title="How do I know it's connected?" imageSrc="/help/pairing-led.jpg" imageAlt="The camera's status LED, located just below its lens, blinking green">
+            <p>
+              Once paired and connected, the camera's LED turns{' '}
+              <strong className="text-foreground">solid green</strong>.
+            </p>
+          </HelpTip>
+        </div>
       </div>
 
       {(phase === 'submitting' || phase === 'waiting') && (
