@@ -1,6 +1,7 @@
 import { AlertTriangle, ChevronRight, Loader2, RefreshCw, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/lib/api/config'
 import { type CameraDto, listMyCameras, refreshAllMyCameras, removeMyCamera } from '@/lib/api/myCamerasClient'
 import { logEvent } from '@/lib/debugLog'
@@ -132,8 +133,16 @@ export function MyCamerasScreen({ onOpenCamera }: MyCamerasScreenProps) {
       {error && <p className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
       {cameras === null && !error ? (
-        <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-primary" />
+        <div className="flex flex-1 flex-col gap-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+            </div>
+          ))}
         </div>
       ) : cameras && cameras.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
