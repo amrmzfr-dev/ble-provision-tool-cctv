@@ -11,7 +11,9 @@ type PicFilter = 'all' | 'checked' | 'unchecked'
 type SortOrder = 'newest' | 'oldest'
 
 const SELECT_CLASS =
-  'h-9 rounded-xl border border-input bg-transparent px-2.5 font-mono text-xs outline-none focus-visible:border-ring'
+  'h-9 rounded-xl border border-input bg-card px-2.5 font-mono text-xs text-foreground outline-none focus-visible:border-ring'
+const ROW_HEIGHT = 'h-12'
+const COLUMN_COUNT = 6
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -91,6 +93,10 @@ export function DashboardAllCamerasPage() {
 
   const totalPages = Math.max(1, Math.ceil(visibleCameras.length / DASHBOARD_PAGE_SIZE))
   const pageCameras = visibleCameras.slice((page - 1) * DASHBOARD_PAGE_SIZE, page * DASHBOARD_PAGE_SIZE)
+  // Pads the current page out to a full DASHBOARD_PAGE_SIZE rows with blank
+  // filler rows, so the table's rendered height stays constant across pages
+  // and filters instead of shrinking whenever fewer rows happen to match.
+  const fillerRowCount = Math.max(0, DASHBOARD_PAGE_SIZE - pageCameras.length)
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-5 py-6">
@@ -162,9 +168,9 @@ export function DashboardAllCamerasPage() {
               </thead>
               <tbody>
                 {pageCameras.map((c) => (
-                  <tr key={c.serial} className="border-t border-border">
-                    <td className="p-3 font-mono">{c.serial}</td>
-                    <td className="p-3">
+                  <tr key={c.serial} className={cn(ROW_HEIGHT, 'border-t border-border')}>
+                    <td className="p-3 font-mono whitespace-nowrap">{c.serial}</td>
+                    <td className="p-3 whitespace-nowrap">
                       <span
                         className={cn(
                           'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase',
@@ -177,10 +183,15 @@ export function DashboardAllCamerasPage() {
                         {c.connected ? 'Online' : 'Offline'}
                       </span>
                     </td>
-                    <td className="p-3 font-mono text-xs text-muted-foreground uppercase">{c.status ?? 'unknown'}</td>
-                    <td className="p-3 font-mono text-xs text-muted-foreground">{c.ip ?? '—'}</td>
-                    <td className="p-3 font-medium uppercase">{c.picName ?? '—'}</td>
-                    <td className="p-3 text-muted-foreground">{formatDate(c.registrationTime)}</td>
+                    <td className="p-3 font-mono text-xs text-muted-foreground uppercase whitespace-nowrap">{c.status ?? 'unknown'}</td>
+                    <td className="p-3 font-mono text-xs text-muted-foreground whitespace-nowrap">{c.ip ?? '—'}</td>
+                    <td className="p-3 font-medium uppercase whitespace-nowrap">{c.picName ?? '—'}</td>
+                    <td className="p-3 text-muted-foreground whitespace-nowrap">{formatDate(c.registrationTime)}</td>
+                  </tr>
+                ))}
+                {Array.from({ length: fillerRowCount }, (_, i) => (
+                  <tr key={`filler-${i}`} className={cn(ROW_HEIGHT, 'border-t border-border')}>
+                    <td colSpan={COLUMN_COUNT} />
                   </tr>
                 ))}
               </tbody>

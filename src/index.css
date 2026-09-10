@@ -37,6 +37,12 @@
    project convention, so the dark values below are copied exactly and the
    light palette is derived from the same accent/radius/type system. */
 :root {
+  /* Without this, native form controls (a <select>'s own dropdown popup,
+     scrollbars) always render with light-mode chrome regardless of the
+     .dark class below - Tailwind classes on the element itself don't reach
+     that native popup, only color-scheme does. */
+  color-scheme: light;
+
   --radius: 0.85rem;
 
   --background: #f1ede2;
@@ -61,6 +67,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   --background: #070707;
   --foreground: #ffffff;
   --card: #121212;
