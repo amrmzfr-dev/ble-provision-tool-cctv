@@ -1,6 +1,7 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { clearDashboardToken, getDashboardToken, subscribeDashboardToken } from '@/lib/api/dashboardConfig'
+import { loadDashboardPage, saveDashboardPage } from '@/lib/dashboardViewState'
 import { DashboardAllCamerasPage } from './DashboardAllCamerasPage'
 import { DashboardLedger } from './DashboardLedger'
 import { DashboardLoginScreen } from './DashboardLoginScreen'
@@ -17,7 +18,11 @@ import { DashboardUsersPage } from './DashboardUsersPage'
 export function DashboardApp() {
   const { theme, toggleTheme } = useTheme()
   const token = useSyncExternalStore(subscribeDashboardToken, getDashboardToken)
-  const [page, setPage] = useState<DashboardPage>('cameras')
+  const [page, setPage] = useState<DashboardPage>(() => loadDashboardPage() ?? 'cameras')
+
+  useEffect(() => {
+    saveDashboardPage(page)
+  }, [page])
 
   const handleLogout = () => {
     clearDashboardToken()

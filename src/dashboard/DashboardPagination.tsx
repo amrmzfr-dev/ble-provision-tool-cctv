@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export const DASHBOARD_PAGE_SIZE = 20
+export const DASHBOARD_PAGE_SIZE = 10
 
 interface DashboardPaginationProps {
   page: number
