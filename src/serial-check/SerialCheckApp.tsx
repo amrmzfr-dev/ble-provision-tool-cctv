@@ -99,11 +99,6 @@ export function SerialCheckApp() {
               <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
                 <Bluetooth className="size-8" />
               </div>
-              <p className="text-sm text-muted-foreground">
-                Just a lookup - see which Dahua device is nearby and read its real serial number.
-                No WiFi, no backend, no pairing.
-              </p>
-
               {bleUnavailable ? (
                 <p className="w-full rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
                   {bleUnavailable}
