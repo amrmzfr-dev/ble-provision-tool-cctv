@@ -44,6 +44,60 @@ function stage(onStage: (stage: ProvisionStage) => void, s: ProvisionStage): voi
   onStage(s)
 }
 
+// Shared by runProvisioning and readDeviceSerial - both start with the same
+// connect + RSA/AES handshake before diverging into their own command
+// sequences, so this is the one place that logic needs to be right.
+async function connectAndDeriveSession(
+  transport: BleTransport,
+  onStage: (stage: ProvisionStage) => void,
+): Promise<SessionKey> {
+  stage(onStage, 'connecting')
+  await transport.connect()
+
+  stage(onStage, 'exchanging-key')
+  const keypair = generateRsaKeypair()
+  logEvent('info', `Sending our RSA public key (${keypair.modulus.length}B modulus)`)
+  const pubKeyResponse = await transport.sendRaw(buildAppFrame(CMD.PUBLIC_KEY.tx, keypair.modulus), false)
+  const pubKeyParsed = parseAppFrame(pubKeyResponse.raw)
+  expectCmd(CMD.PUBLIC_KEY, pubKeyParsed.cmd)
+  const secret = keypair.decrypt(pubKeyParsed.data)
+  logEvent('info', `Decrypted secret (${secret.length}B): ${bytesToHex(secret)}`)
+  const session = deriveSessionKey(secret)
+  logEvent('success', `Session key derived (key ${session.key.length}B, iv ${session.iv.length}B)`)
+  return session
+}
+
+/**
+ * Reads just the camera's Dahua serial number over BLE - the same
+ * connect + key-exchange + GET_SN prefix runProvisioning does, stopping
+ * there instead of continuing into WiFi setup. No backend call, no WiFi
+ * credentials needed - purely a local Bluetooth read, so it's safe to run
+ * standalone (e.g. from the no-login serial-check page).
+ */
+export async function readDeviceSerial(
+  device: BluetoothDevice,
+  onStage: (stage: ProvisionStage) => void,
+): Promise<string> {
+  const transport = new BleTransport(device)
+
+  try {
+    const session = await connectAndDeriveSession(transport, onStage)
+
+    stage(onStage, 'reading-serial')
+    const snData = await sendEncryptedCommand(transport, session, 'GET_SN', CMD.GET_SN, new Uint8Array(0))
+    const serialNumber = parseSnOrScResponse(snData)
+    logEvent('success', `Serial number: ${serialNumber} (raw: ${bytesToHex(snData)})`)
+
+    stage(onStage, 'done')
+    return serialNumber
+  } catch (err) {
+    logEvent('error', `Reading serial failed: ${err instanceof Error ? err.message : String(err)}`)
+    throw err
+  } finally {
+    transport.disconnect()
+  }
+}
+
 export async function runProvisioning(
   device: BluetoothDevice,
   ssid: string,
@@ -69,19 +123,7 @@ export async function runProvisioning(
   const transport = new BleTransport(device)
 
   try {
-    stage(onStage, 'connecting')
-    await transport.connect()
-
-    stage(onStage, 'exchanging-key')
-    const keypair = generateRsaKeypair()
-    logEvent('info', `Sending our RSA public key (${keypair.modulus.length}B modulus)`)
-    const pubKeyResponse = await transport.sendRaw(buildAppFrame(CMD.PUBLIC_KEY.tx, keypair.modulus), false)
-    const pubKeyParsed = parseAppFrame(pubKeyResponse.raw)
-    expectCmd(CMD.PUBLIC_KEY, pubKeyParsed.cmd)
-    const secret = keypair.decrypt(pubKeyParsed.data)
-    logEvent('info', `Decrypted secret (${secret.length}B): ${bytesToHex(secret)}`)
-    const session = deriveSessionKey(secret)
-    logEvent('success', `Session key derived (key ${session.key.length}B, iv ${session.iv.length}B)`)
+    const session = await connectAndDeriveSession(transport, onStage)
 
     const sendEncrypted = (label: string, cmd: CommandPair, payload: Uint8Array) =>
       sendEncryptedCommand(transport, session, label, cmd, payload)
