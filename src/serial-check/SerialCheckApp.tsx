@@ -1,6 +1,5 @@
 import { Bluetooth, Check, Copy, Moon, RotateCcw, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { HelpTip } from '@/components/HelpTip'
 import { Button } from '@/components/ui/button'
 import { useBleScan } from '@/hooks/useBleScan'
 import { useTheme } from '@/hooks/useTheme'
@@ -14,11 +13,11 @@ type ReadState =
   | { name: 'error'; message: string }
 
 /**
- * Deliberately no login and no dependency on the rest of the app's pairing
- * flow (App.tsx) - reading a camera's Dahua serial is a pure local Bluetooth
- * operation with no backend call involved, so gating it behind auth would
- * only get in the way of what this page is for: letting anyone with the
- * link quickly check a camera's real serial against its printed label.
+ * A pure lookup tool, not a pairing flow - it doesn't send WiFi credentials,
+ * doesn't talk to the backend, and doesn't lead anywhere else. It exists so
+ * anyone can point at a Dahua device nearby and see what it actually is
+ * (advertised name + real serial), nothing more. Deliberately no login for
+ * the same reason: there's no backend call here for a login to protect.
  * Routed to from main.tsx by pathname, same pattern as /dashboard.
  */
 export function SerialCheckApp() {
@@ -86,7 +85,7 @@ export function SerialCheckApp() {
               <span className="block font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                 Perodua smart charger
               </span>
-              <h1 className="text-xl leading-[0.95] font-black tracking-tight uppercase">Serial Check</h1>
+              <h1 className="text-xl leading-[0.95] font-black tracking-tight uppercase">Dahua Scanner</h1>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
@@ -100,24 +99,10 @@ export function SerialCheckApp() {
               <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
                 <Bluetooth className="size-8" />
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground">
-                  Reads the camera's real Dahua serial number straight over Bluetooth - no WiFi, no
-                  backend, no login.
-                </p>
-                <HelpTip
-                  title="Is it in pairing mode?"
-                  imageSrc="/help/pairing-led.jpg"
-                  imageAlt="The camera's status LED, located just below its lens, blinking green"
-                >
-                  <p>
-                    Look for the small LED just below the camera's lens. If it's{' '}
-                    <strong className="text-foreground">blinking green quickly</strong>, the camera is in
-                    Bluetooth pairing mode and ready to be found. If it isn't blinking, it may need a power
-                    cycle or a physical reset before it will advertise over Bluetooth again.
-                  </p>
-                </HelpTip>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Just a lookup - see which Dahua device is nearby and read its real serial number.
+                No WiFi, no backend, no pairing.
+              </p>
 
               {bleUnavailable ? (
                 <p className="w-full rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
@@ -127,14 +112,14 @@ export function SerialCheckApp() {
                 <>
                   <Button size="lg" className="w-full" onClick={startScan}>
                     <Bluetooth />
-                    Find a camera over Bluetooth
+                    Scan for Dahua devices
                   </Button>
                   <button
                     type="button"
                     onClick={() => scan('all-devices')}
                     className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                   >
-                    Not seeing it? Show every nearby Bluetooth device instead
+                    Show every nearby Bluetooth device instead
                   </button>
                 </>
               )}
@@ -171,23 +156,30 @@ export function SerialCheckApp() {
 
           {state.name === 'done' && (
             <div className="flex flex-1 flex-col items-center justify-center gap-5 rounded-2xl border border-border bg-card p-5 text-center">
-              <span className="font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                Dahua serial number
-              </span>
-              <button
-                type="button"
-                onClick={() => copySerial(state.serial)}
-                className="w-full rounded-2xl border border-border bg-muted/50 px-4 py-6 font-mono text-2xl font-black tracking-wider break-all text-foreground select-all hover:bg-muted"
-              >
-                {state.serial}
-              </button>
+              {device && (
+                <span className="text-xs font-medium text-muted-foreground">
+                  Advertised as <span className="text-foreground">{device.name}</span>
+                </span>
+              )}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                  Dahua serial number
+                </span>
+                <button
+                  type="button"
+                  onClick={() => copySerial(state.serial)}
+                  className="w-full rounded-2xl border border-border bg-muted/50 px-4 py-6 font-mono text-2xl font-black tracking-wider break-all text-foreground select-all hover:bg-muted"
+                >
+                  {state.serial}
+                </button>
+              </div>
               <Button size="lg" className="w-full" onClick={() => copySerial(state.serial)}>
                 {copied ? <Check /> : <Copy />}
                 {copied ? 'Copied' : 'Copy serial'}
               </Button>
               <Button variant="outline" className="w-full" onClick={startOver}>
                 <RotateCcw />
-                Check another camera
+                Scan again
               </Button>
             </div>
           )}
