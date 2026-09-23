@@ -95,35 +95,40 @@ export function SerialCheckApp() {
 
         <div className="flex min-h-[420px] flex-1 flex-col gap-4">
           {(state.name === 'idle' || state.name === 'error') && !scanning && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-5 text-center">
-              <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                <Bluetooth className="size-8" />
+            <div className="flex flex-1 flex-col items-center rounded-2xl border border-border bg-card p-5 text-center">
+              <div className="flex flex-1 items-center justify-center">
+                <div className="glow-primary flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                  <Bluetooth className="size-8" />
+                </div>
               </div>
-              {bleUnavailable ? (
-                <p className="w-full rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-                  {bleUnavailable}
-                </p>
-              ) : (
-                <>
-                  <Button size="lg" className="w-full" onClick={startScan}>
-                    <Bluetooth />
-                    Scan for Dahua devices
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => scan('all-devices')}
-                    className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                  >
-                    Show every nearby Bluetooth device instead
-                  </button>
-                </>
-              )}
 
-              {(scanError || state.name === 'error') && (
-                <p className="w-full rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-                  {scanError ?? (state.name === 'error' ? state.message : '')}
-                </p>
-              )}
+              <div className="flex w-full flex-col items-center gap-3">
+                {bleUnavailable ? (
+                  <p className="w-full rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+                    {bleUnavailable}
+                  </p>
+                ) : (
+                  <>
+                    <Button size="lg" className="w-full" onClick={startScan}>
+                      <Bluetooth />
+                      Scan for Dahua devices
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => scan('all-devices')}
+                      className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                    >
+                      Show every nearby Bluetooth device instead
+                    </button>
+                  </>
+                )}
+
+                {(scanError || state.name === 'error') && (
+                  <p className="w-full rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+                    {scanError ?? (state.name === 'error' ? state.message : '')}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
