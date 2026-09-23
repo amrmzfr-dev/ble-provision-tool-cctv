@@ -1,4 +1,4 @@
-import { Bluetooth, Check, Copy, Moon, RotateCcw, Sun } from 'lucide-react'
+import { AlertTriangle, Bluetooth, Check, Copy, Moon, RotateCcw, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useBleScan } from '@/hooks/useBleScan'
@@ -72,6 +72,12 @@ export function SerialCheckApp() {
   }
 
   const bleUnavailable = !navigator.bluetooth ? new BleUnavailableError().message : null
+  const errorMessage = scanError ?? (state.name === 'error' ? state.message : null)
+
+  const dismissError = () => {
+    resetScan()
+    if (state.name === 'error') setState({ name: 'idle' })
+  }
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-background text-foreground">
@@ -121,12 +127,6 @@ export function SerialCheckApp() {
                       Show every nearby Bluetooth device instead
                     </button>
                   </>
-                )}
-
-                {(scanError || state.name === 'error') && (
-                  <p className="w-full rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-                    {scanError ?? (state.name === 'error' ? state.message : '')}
-                  </p>
                 )}
               </div>
             </div>
@@ -185,6 +185,24 @@ export function SerialCheckApp() {
           )}
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-5" onClick={dismissError}>
+          <div
+            className="w-full max-w-xs rounded-2xl border border-border bg-card p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase">
+              <AlertTriangle className="size-4 text-destructive" />
+              Couldn't find it
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{errorMessage}</p>
+            <Button className="mt-4 w-full" onClick={dismissError}>
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
