@@ -10,12 +10,15 @@ interface FindDeviceScreenProps {
 }
 
 /**
- * Primary button shows every nearby Bluetooth device in the browser's own
- * picker (Web Bluetooth always requires a user gesture on a real chooser
- * dialog, a hard spec-level rule with no workaround). The Dahua-only
- * manufacturer-ID filter (useBleScan.ts's 'manufacturer' mode) is kept as
- * the secondary link: cameras were not showing up with it as the default
- * on both Android and iOS, so it is not trusted as the first choice.
+ * Primary button filters the browser's own device picker down to Dahua
+ * devices only (manufacturer ID, see useBleScan.ts's 'manufacturer' mode) -
+ * this can't skip the picker itself (Web Bluetooth always requires a user
+ * gesture on a real chooser dialog, a hard spec-level rule with no
+ * workaround, same as every other website), but it does mean the list is
+ * usually just the one camera instead of every nearby BLE device. Falls
+ * back to showing everything in case manufacturer-data filtering doesn't
+ * work on this browser (flagged as unverified on Bluefy/iOS in the
+ * original plan).
  */
 export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDeviceScreenProps) {
   return (
@@ -50,7 +53,7 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
           Choose the device with the same serial as the one you scanned.
         </p>
 
-        <Button onClick={() => onScan('all-devices')} disabled={scanning} size="lg" className="w-full">
+        <Button onClick={() => onScan('manufacturer')} disabled={scanning} size="lg" className="w-full">
           <span className="relative flex size-5 items-center justify-center">
             {scanning && (
               <>
@@ -66,11 +69,11 @@ export function FindDeviceScreen({ serial, scanning, error, onScan }: FindDevice
 
         <button
           type="button"
-          onClick={() => onScan('manufacturer')}
+          onClick={() => onScan('all-devices')}
           disabled={scanning}
           className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
-          Too many devices? Show only Dahua devices
+          Not seeing it? Show every nearby Bluetooth device instead
         </button>
 
         {error && (

@@ -28,7 +28,7 @@ export function SerialCheckApp() {
 
   const startScan = async () => {
     setState({ name: 'idle' })
-    await scan('all-devices')
+    await scan('manufacturer')
   }
 
   const readSerial = async (bleDevice: BluetoothDevice) => {
